@@ -1,0 +1,12 @@
+!
+!
+&nmlist
+  fileIN  = '/data/dswales/NA-CORDEX/wrfout/wrfout_d01_2100-01-01_00:00:00',
+  fileOUT = '../data/wrfout_d01_2100-01-01_00:00:00.postprocess.nc',
+  z_soil  = 0.1,
+  verbose = .true.,
+  l_ivt   = .true., ! Compute IVT?
+  l_z0k   = .true., ! Compute freezing-level height?
+  l_smois = .true., ! Extract soil moisture at z_soil?
+  l_z500  = .true.  ! Compute 500hPa geopotential height?
+/
