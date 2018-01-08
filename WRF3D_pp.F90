@@ -23,6 +23,12 @@ program WRF3D_pp
   use netcdf
   implicit none
 
+  ! Parameters
+  logical, parameter :: &
+       verbose=.true.  ! On/off
+  real,parameter :: &
+       z_soil = 0.1     ! Depth of WRF soil moisture to output (m)
+
   ! Arguments
   character(len=256) :: &
        fileIN, & ! Input file
@@ -36,7 +42,8 @@ program WRF3D_pp
        nLev,      & ! WRF file dimension: Number of vertical levels
        nLon_stag, & ! WRF file dimension: Number of longitudes (staggerd grid)
        nLat_stag, & ! WRF file dimension: Number of latitude (staggerd grid)
-       nLev_stag    ! WRF file dimension: Number of vertical levels (staggerd grid)
+       nLev_stag, & ! WRF file dimension: Number of vertical levels (staggerd grid)
+       nSoil_stag   ! WRF file dimension: Number of soil layers (staggered grid) 
   real,dimension(:,:,:,:),allocatable :: &!                              WRF NAME   UNITS             
        q,         & ! WRF input field: Water vapor mixing ratio          (QVAPOR)  (kg/kg)
        u,         & ! WRF input field: Zonal component of the wind       (U)       (m/s)
@@ -45,7 +52,8 @@ program WRF3D_pp
        pb,        & ! WRF input field: Base state pressure               (PB)      (Pa)
        ta,        & ! WRF input field: Pertubation potential temp.       (T)       (K)
        ph,        & ! WRF input field: Pertubation geopotential          (PH)      (m2/s2)
-       phb          ! WRF input field: Base-state geopotential           (PHB)     (m2/s2)
+       phb,       & ! WRF input field: Base-state geopotential           (PHB)     (m2/s2)
+       smois        ! WRF input field: Soil mosisture                    (SMOIS)   (m3/m3)
   real,dimension(:,:,:),allocatable :: &
        lon,       & ! WRF input field: Longitude                         (XLONG)   (degree_east)
        lat,       & ! WRF input field: Latitude                          (XLAT)    (degree_north)
@@ -56,23 +64,24 @@ program WRF3D_pp
        psfc,      & ! WRF input field: Surface pressure                  (PSFC)    (Pa)
        terrainZ     ! WRF input field: Terrain height                    (HGT)     (m)
   real,dimension(:),allocatable :: &
-       t00          ! WRF input field: Base state temperature            (T00)     (K)
+       t00,       & ! WRF input field: Base state temperature            (T00)     (K)
+       zs           ! WRF input field: Soil levels                       (ZS)      (m)
 
   ! Local fields
   real,dimension(:,:,:,:),allocatable :: &
-       p,     & ! WRF pressue (computed from pp and pb)  (pa)
-       hgt      ! WRF heights (computed from ph and phb) (m)
+       p,         & ! WRF pressue (computed from pp and pb)  (pa)
+       hgt          ! WRF heights (computed from ph and phb) (m)
   real,dimension(:,:,:),allocatable :: &
-       ivtU,  & ! WRF IVT (u-component)                  (kg/m/s)
-       ivtV,  & ! WRF IVT (v-component)                  (kg/m/s)
-       z0k      ! WRF Freezing level height              (m)
-  integer,dimension(7) :: dimID,varIDout
+       ivtU,      & ! WRF IVT (u-component)                  (kg/m/s)
+       ivtV,      & ! WRF IVT (v-component)                  (kg/m/s)
+       z0k,       & ! WRF Freezing level height              (m)
+       soilMoisture ! WRF soil mositure @ z_soil              (m3/m3)
+  
+  integer,dimension(8) :: dimID,varIDout
   integer :: status,fileID,varID,ii,ij,ik,il
-  real,dimension(:),allocatable :: ui,vi,temp,phm,a
-  real :: wt1,dp
+  real,dimension(:),allocatable :: ui,vi,temp,phm,a,b
+  real :: wt1,dp,wt2
   integer,dimension(1) :: xi,xf
-  logical, parameter :: &
-       verbose=.true. 
 
   ! Get filenames.
   call getarg(1,fileIN)
@@ -134,6 +143,12 @@ program WRF3D_pp
   if (status == nf90_NoErr) then
      status = nf90_inquire_dimension(fileID,dimID(7),len=nLev_stag)
   endif
+  ! "soil_layers_stag"
+  status = nf90_inq_dimid(fileID,"soil_layers_stag",dimID(8))
+  if (status /= nf90_NoErr) print*,'ERROR: Dimension not present in file, soil_layers_stag'
+  if (status == nf90_NoErr) then
+     status = nf90_inquire_dimension(fileID,dimID(8),len=nSoil_stag)
+  endif
     
   ! 2) Allocate space for input fields
   allocate(q(nLon,nLat,nLev,nTime), u(nLon_stag,nLat,nLev,nTime), v(nLon,nLat_stag,nLev,nTime), &
@@ -142,7 +157,7 @@ program WRF3D_pp
           pp(nLon,nLat,nLev,nTime), pb(nLon,nLat,nLev,nTime) ,p(nLon,nLat,nLev,nTime),          &
           psfc(nLon,nLat,nTime), ta(nLon,nLat,nLev,nTime), ph(nLon,nLat,nLev_stag,nTime),       &
           phb(nLon,nLat,nLev_stag,nTime), hgt(nLon,nLat,nLev_stag,nTime), t00(nTime),           &
-          terrainZ(nLon,nLat,nTime))
+          terrainZ(nLon,nLat,nTime),zs(nSoil_stag),smois(nLon,nLat,nSoil_stag,nTime))
 
   ! 3) Read in fields
   ! Longitude
@@ -180,11 +195,18 @@ program WRF3D_pp
      status = nf90_get_var(fileID,varID,lon_v)
   endif
   
-  ! Latitude (staggered in merisional)
+  ! Latitude (staggered in meridional)
   status = nf90_inq_varid(fileID,"XLAT_V",varID)
   if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, XLAT_V'
   if (status == nf90_NoErr) then
      status = nf90_get_var(fileID,varID,lat_v)
+  endif
+
+  ! Soil depth (staggered in vertical)
+  status = nf90_inq_varid(fileID,"ZS",varID)
+  if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, ZS'
+  if (status == nf90_NoErr) then
+     status = nf90_get_var(fileID,varID,zs,count=(/nSoil_stag,1/))
   endif
   
   ! Terrain height
@@ -263,6 +285,13 @@ program WRF3D_pp
   if (status == nf90_NoErr) then
      status = nf90_get_var(fileID,varID,psfc,count=(/nLon,nLat,nTime/))
   endif
+
+  ! Soil moisture
+  status = nf90_inq_varid(fileID,"SMOIS",varID)
+  if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, SMOIS'
+  if (status == nf90_NoErr) then
+     status = nf90_get_var(fileID,varID,smois)
+  endif
   
   ! 4) Close file
   status=nf90_close(fileID)
@@ -282,7 +311,7 @@ program WRF3D_pp
 
   ! Allocate
   allocate(ui(nLev),vi(nLev), ivtU(nLon,nLat,nTime), ivtV(nLon,nLat,nTime), &
-       z0k(nLon,nLat,nTime),temp(nLev),phm(nLev),a(nLev))
+       z0k(nLon,nLat,nTime),temp(nLev),phm(nLev),a(nLev),b(nSoil_stag),soilMoisture(nLon,nLat,nTime))
 
   ! Initialize
   ivtU(:,:,:) = 0.
@@ -342,13 +371,25 @@ program WRF3D_pp
               ! If it's freezing at all layers, set freezing level to terrain height.
               z0k(ij,ik,ii) = terrainZ(ij,ik,ii)
            endif
-           
+
+           ! ###################################################################
+           ! Compute soil moisture at z_soil.
+           ! ###################################################################
+           b  = zs-z_soil
+           xf = minloc(b,b .gt. 0)
+           xi = xf-1
+           if (xi(1) .lt. 1) then
+              write(*,"(a37,f5.2,a17)"),'ERROR: Requested soil moisture depth, ',z_soil,' is out of bounds.'
+           endif
+           wt2 = (zs(xf(1))-z_soil)/(zs(xf(1))-zs(xi(1)))
+           soilMoisture(ij,ik,ii) = smois(ij,ik,xi(1),ii)*wt2+smois(ij,ik,xf(1),ii)*(1-wt2)
+
         enddo ! Latitude
      enddo    ! Longitude
   enddo       ! Time
 
   ! Cleanup a tad.
-  deallocate(u,v,ui,vi,a)
+  deallocate(u,v,ui,vi,a,b)
   if (verbose) print*,'Finished computations'
 
   ! #############################################################################
@@ -379,7 +420,9 @@ program WRF3D_pp
   status = nf90_def_var(fileID,'IVTV',nf90_float, (/dimID(2),dimID(3),dimID(1)/),varIDout(4))
   if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, IVTV'
   status = nf90_def_var(fileID,'Z0K',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(5))
-  if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, Z0K'  
+  if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, Z0K'
+  status = nf90_def_var(fileID,'SMOIS',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(6))
+  if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, SMOIS'  
   
   ! Add attributes to variables
   status = nf90_put_att(fileID,varIDout(1),"FieldType",104)
@@ -433,6 +476,17 @@ program WRF3D_pp
   status = nf90_put_att(fileID,varIDout(5),"stagger","")
   if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable Z0K'
 
+  status = nf90_put_att(fileID,varIDout(6),"FieldType",104)
+  if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable SMOIS'
+  status = nf90_put_att(fileID,varIDout(6),"MemoryOrder","XY")
+  if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable SMOIS'
+  status = nf90_put_att(fileID,varIDout(6),"description","SOIL MOISTURE @ Z_soil")
+  if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable SMOIS'
+  status = nf90_put_att(fileID,varIDout(6),"units","m")
+  if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable SMOIS'
+  status = nf90_put_att(fileID,varIDout(6),"stagger","")
+  if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable SMOIS'
+
   ! Exit define mode
   status = nf90_enddef(fileID)
   if (status /= nf90_NoErr) print*,'ERROR: Failure exiting define mode'
@@ -448,6 +502,8 @@ program WRF3D_pp
   if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, IVTV'
   status = nf90_put_var(fileID,varIDout(5),z0k)
   if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, Z0K'
+  status = nf90_put_var(fileID,varIDout(6),soilMoisture)
+  if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, SMOIS'
   
   ! Close output file
   status = nf90_close(fileID)
