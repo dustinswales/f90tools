@@ -28,10 +28,11 @@ program WRF3D_pp
        l_ivt,   & ! Compute IVT?
        l_z0k,   & ! Compute freezing level height?
        l_smois, & ! Compute soil moisture?
-       l_z500     ! Compute 500hPa geopotential height
+       l_z500,  & ! Compute 500hPa geopotential height?
+       l_q700     ! Compute 700hPa specific-humidity.
   real :: &
        z_soil
-  namelist/nmlist/fileIN,fileOUT,z_soil,verbose,l_ivt,l_z0k,l_smois,l_z500
+  namelist/nmlist/fileIN,fileOUT,z_soil,verbose,l_ivt,l_z0k,l_smois,l_z500,l_q700
 
   ! WRF fields
   integer :: &
@@ -75,21 +76,75 @@ program WRF3D_pp
        ivtV,      & ! WRF IVT (v-component)                  (kg/m/s)
        z0k,       & ! WRF Freezing level height              (m)
        z500,      & ! WRF geopotential height @ 500hPa       (m)
+       q700,      & ! WRF specific-humidity @ 700hPa         (kg/kg)
        soilMoisture ! WRF soil mositure @ z_soil             (m3/m3)
   
-  integer,dimension(8) :: dimID,varIDout
+  integer,dimension(9) :: dimID,varIDout
   integer :: status,fileID,varID,ii,ij,ik,il
   real,dimension(:),allocatable :: ui,vi,temp,phm,a,b
   real :: wt1,dp,wt2
   integer,dimension(1) :: xi,xf
+  logical :: &
+       lread_QVAPOR = .false., &
+       lread_U      = .false., &
+       lread_V      = .false., &
+       lread_PSFC   = .false., &
+       lread_PB     = .false., &
+       lread_P      = .false., &
+       lread_PH     = .false., &
+       lread_PHB    = .false., &
+       lread_T      = .false., &
+       lread_T00    = .false., &
+       lread_HGT    = .false., &
+       lread_ZS     = .false., &
+       lread_SMOIS  = .false.
 
-  ! Read in namelist
+  ! #############################################################################
+  ! A) Read in namelist
+  ! #############################################################################
   open(10,file=trim(input_namelist),status='unknown')
   read(10,nml=nmlist)
   close(10)
 
   ! #############################################################################
-  ! Part A: Data ingest
+  ! B) What fields need to be read in?
+  ! #############################################################################
+  if (l_ivt) then
+     lread_QVAPOR = .true.
+     lread_U      = .true.
+     lread_V      = .true.
+     lread_PSFC   = .true.
+     lread_PB     = .true.
+     lread_P      = .true.
+  endif
+  if (l_z0k) then
+     lread_T      = .true.
+     lread_T00    = .true.
+     lread_HGT    = .true.
+     lread_PB     = .true.
+     lread_P      = .true.
+     lread_PH     = .true.
+     lread_PHB    = .true.
+  endif
+  if (l_z500) then
+     lread_PB     = .true.
+     lread_P      = .true.
+     lread_PH     = .true.
+     lread_PHB    = .true.
+  endif
+  if (l_smois) then
+     lread_ZS     = .true.
+     lread_SMOIS  = .true.
+  endif
+  if (l_q700) then
+     lread_QVAPOR = .true.
+     lread_PSFC   = .true.
+     lread_PB     = .true.
+     lread_P      = .true.
+  endif
+  
+  ! #############################################################################
+  ! C) Data ingest
   ! #############################################################################
   if (verbose) print*,'Reading in data ....'
   
@@ -151,36 +206,12 @@ program WRF3D_pp
      status = nf90_inquire_dimension(fileID,dimID(8),len=nSoil_stag)
   endif
     
-  ! 2) Allocate space for input fields (where necessary)
-  allocate(lat(nLon,nLat,nTime), lon(nLon,nLat,nTime), lon_u(nLon_stag,nLat,nTime), & 
-           lat_u(nLon_stag,nLat,nTime), lon_v(nLon,nLat_stag,nTime),                &
-           lat_v(nLon,nLat_stag,nTime))
-  if (l_ivt) then
-     allocate(q(nLon,nLat,nLev,nTime), u(nLon_stag,nLat,nLev,nTime),                &
-              v(nLon,nLat_stag,nLev,nTime),psfc(nLon,nLat,nTime))
-  endif
-  if (l_z0k) then
-     allocate(ta(nLon,nLat,nLev,nTime),t00(nTime), terrainZ(nLon,nLat,nTime))
-  endif
-  if (l_ivt) then
-     allocate(pp(nLon,nLat,nLev,nTime),pb(nLon,nLat,nLev,nTime),p(nLon,nLat,nLev,nTime))
-  endif
-  if (l_z0k .or. l_z500) then
-    allocate(hgt(nLon,nLat,nLev_stag,nTime), ph(nLon,nLat,nLev_stag,nTime),        &
-             phb(nLon,nLat,nLev_stag,nTime))
-    if (.not. allocated(pp)) allocate(pp(nLon,nLat,nLev,nTime))
-    if (.not. allocated(pb)) allocate(pb(nLon,nLat,nLev,nTime))
-    if (.not. allocated(p))  allocate(p(nLon,nLat,nLev,nTime))
-  endif
-  if (l_smois) then
-     allocate(zs(nSoil_stag),smois(nLon,nLat,nSoil_stag,nTime))
-  endif
-
-  ! 3) Read in fields
+  ! 2) Read in fields
   ! Longitude
   status = nf90_inq_varid(fileID,"XLONG",varID)
   if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, XLONG'
   if (status == nf90_NoErr) then
+     allocate(lon(nLon,nLat,nTime))
      status = nf90_get_var(fileID,varID,lon)
   endif
   
@@ -188,6 +219,7 @@ program WRF3D_pp
   status = nf90_inq_varid(fileID,"XLAT",varID)
   if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, XLAT'
   if (status == nf90_NoErr) then
+     allocate(lat(nLon,nLat,nTime))
      status = nf90_get_var(fileID,varID,lat)
   endif
   
@@ -195,6 +227,7 @@ program WRF3D_pp
   status = nf90_inq_varid(fileID,"XLONG_U",varID)
   if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, XLONG_U'
   if (status == nf90_NoErr) then
+     allocate(lon_u(nLon_stag,nLat,nTime))
      status = nf90_get_var(fileID,varID,lon_u)
   endif
   
@@ -202,6 +235,7 @@ program WRF3D_pp
   status = nf90_inq_varid(fileID,"XLAT_U",varID)
   if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, XLAT_U'
   if (status == nf90_NoErr) then
+     allocate(lat_u(nLon_stag,nLat,nTime))
      status = nf90_get_var(fileID,varID,lat_u)
   endif
   
@@ -209,6 +243,7 @@ program WRF3D_pp
   status = nf90_inq_varid(fileID,"XLONG_V",varID)
   if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, XLONG_V'
   if (status == nf90_NoErr) then
+     allocate(lon_v(nLon,nLat_stag,nTime))
      status = nf90_get_var(fileID,varID,lon_v)
   endif
   
@@ -216,111 +251,125 @@ program WRF3D_pp
   status = nf90_inq_varid(fileID,"XLAT_V",varID)
   if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, XLAT_V'
   if (status == nf90_NoErr) then
+     allocate(lat_v(nLon,nLat_stag,nTime))
      status = nf90_get_var(fileID,varID,lat_v)
   endif
 
-  ! *The fields below are only needed if an output which is dependent on one.*
-  ! WRF fields needed to compute IVT.
-  if (l_ivt) then
-     ! Specific humidity
+  ! Only read in fields which are required for requested computations.
+  if (lread_QVAPOR) then
+     ! Water vapor mixing-ratio.
      status = nf90_inq_varid(fileID,"QVAPOR",varID)
      if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, QVAPOR'
      if (status == nf90_NoErr) then
+        allocate(q(nLon,nLat,nLev,nTime))
         status = nf90_get_var(fileID,varID,q,count=(/nLon,nLat,nLev,nTime/))
      endif
-  
+  endif
+  if (lread_U) then
      ! Eastward component of wind
      status = nf90_inq_varid(fileID,"U",varID)
      if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, U'
      if (status == nf90_NoErr) then
+        allocate(u(nLon,nLat,nLev,nTime))
         status = nf90_get_var(fileID,varID,u,count=(/nLon_stag,nLat,nLev,nTime/))
      endif
-     
+  endif
+  if (lread_V) then
      ! Northward component of wind
      status = nf90_inq_varid(fileID,"V",varID)
      if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, V'
      if (status == nf90_NoErr) then
+        allocate(v(nLon,nLat,nLev,nTime))
         status = nf90_get_var(fileID,varID,v,count=(/nLon,nLat_stag,nLev,nTime/))
      endif
-
+  endif
+  if (lread_PSFC) then
      ! Surface pressure
      status = nf90_inq_varid(fileID,"PSFC",varID)
      if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, PSFC'
      if (status == nf90_NoErr) then
+        allocate(psfc(nLon,nLat,nTime))
         status = nf90_get_var(fileID,varID,psfc,count=(/nLon,nLat,nTime/))
      endif
   endif
-
-  ! WRF fields needed to compute freezing-level height.
-  if (l_z0k) then
+  if (lread_T00) then
      ! Base temperature
      status = nf90_inq_varid(fileID,"T00",varID)
      if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, T00'
      if (status == nf90_NoErr) then
+        allocate(t00(nTime))
         status = nf90_get_var(fileID,varID,t00)
      endif
-  
+  endif
+  if (lread_T) then
      ! Temperature
      status = nf90_inq_varid(fileID,"T",varID)
      if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, T'
      if (status == nf90_NoErr) then
+        allocate(ta(nLon,nLat,nLev,nTime))
         status = nf90_get_var(fileID,varID,ta,count=(/nLon,nLat,nLev,nTime/))
      endif
-
+  endif
+  if (lread_HGT) then
      ! Terrain height
      status = nf90_inq_varid(fileID,"HGT",varID)
      if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, HGT'
      if (status == nf90_NoErr) then
+        allocate(terrainZ(nLon,nLat,nTime))
         status = nf90_get_var(fileID,varID,terrainZ)
      endif
   endif
-
-  ! WRF fields needed to compute BOTH freezing-level height and IVT.
-  if (l_ivt .or. l_z0k .or. l_z500) then
+  if (lread_PB) then
      ! Base state (reference) pressure
      status = nf90_inq_varid(fileID,"PB",varID)
      if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, PB'
      if (status == nf90_NoErr) then
+        allocate(pb(nLon,nLat,nLev,nTime))
         status = nf90_get_var(fileID,varID,pb,count=(/nLon,nLat,nLev,nTime/))
      endif
-     
+  endif
+  if (lread_P) then
      ! Pertubation pressure
      status = nf90_inq_varid(fileID,"P",varID)
      if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, P'
      if (status == nf90_NoErr) then
+        allocate(pp(nLon,nLat,nLev,nTime))
         status = nf90_get_var(fileID,varID,pp,count=(/nLon,nLat,nLev,nTime/))
      endif
   endif
-
-  if (l_z0k .or. l_z500) then
+  if (lread_PHB) then
      ! Base state (reference) height
      status = nf90_inq_varid(fileID,"PHB",varID)
      if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, PHB'
      if (status == nf90_NoErr) then
+        allocate(phb(nLon,nLat,nLev_stag,nTime))
         status = nf90_get_var(fileID,varID,phb,count=(/nLon,nLat,nLev_stag,nTime/))
      endif
-     
+  endif
+  if (lread_PH) then
      ! Pertubation height
      status = nf90_inq_varid(fileID,"PH",varID)
      if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, PH'
      if (status == nf90_NoErr) then
+        allocate(ph(nLon,nLat,nLev_stag,nTime))
         status = nf90_get_var(fileID,varID,ph,count=(/nLon,nLat,nLev_stag,nTime/))
      endif
   endif
-
-  ! WRF fields needed to compute soil-moisture at z_soil.
-  if (l_smois) then
+  if (lread_ZS) then
      ! Soil depth (staggered in vertical)
      status = nf90_inq_varid(fileID,"ZS",varID)
      if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, ZS'
      if (status == nf90_NoErr) then
+        allocate(zs(nSoil_stag))
         status = nf90_get_var(fileID,varID,zs,count=(/nSoil_stag,1/))
      endif
-     
+  endif
+  if (lread_SMOIS) then
      ! Soil moisture
      status = nf90_inq_varid(fileID,"SMOIS",varID)
      if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, SMOIS'
      if (status == nf90_NoErr) then
+        allocate(smois(nLon,nLat,nSoil_stag,nTime))
         status = nf90_get_var(fileID,varID,smois)
      endif
   endif
@@ -337,8 +386,16 @@ program WRF3D_pp
   ! #############################################################################
 
   ! Compute pressure and height.
-  if (l_ivt .or. l_z0k .or. l_z500) p   = pb+pp
-  if (l_z0k .or. l_z500)            hgt = (ph+phb)/9.8
+  !if (l_ivt .or. l_z0k .or. l_z500 .or. l_q700) then
+  if (allocated(pb) .and. allocated(pp)) then
+     allocate(p(nLon,nLat,nLev,nTime))
+     p   = pb+pp
+  endif
+  !if (l_z0k .or. l_z500) then
+  if (allocated(ph) .and. allocated(phb)) then
+     allocate(hgt(nLon,nLat,nLev_stag,nTime))
+     hgt = (ph+phb)/9.8
+  endif
 
   ! Allocate and initialize
   if (l_ivt) then
@@ -358,7 +415,11 @@ program WRF3D_pp
      allocate(z500(nLon,nLat,nTime))
      z500(:,:,:) = 0.
   endif
-
+  if (l_q700) then
+     allocate(q700(nLon,nLat,nTime))
+     q700(:,:,:) = 0.
+  endif
+  
   ! Loop over all points/times and compute IVT and freezing level heights.
   if (verbose) print*,'Regridding velocity fields, computing IVT and freezing-level height: '
   do ii=1,nTime
@@ -437,6 +498,16 @@ program WRF3D_pp
               xf = xi + 1
               wt2 = (p(ij,ik,xf(1),ii)-50000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
               z500(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
+           endif
+
+           ! ###################################################################
+           ! Compute 700hPa specific-humidity
+           ! ###################################################################
+           if (l_q700) then
+              xi = minloc(p(ij,ik,:,ii)-70000.,p(ij,ik,:,ii)-70000. .gt. 0)
+              xf = xi + 1
+              wt2 = (p(ij,ik,xf(1),ii)-70000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
+              q700(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
            endif
            
         enddo ! Latitude
@@ -550,7 +621,7 @@ program WRF3D_pp
      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable SMOIS'
   endif
 
-  ! 500hPa geopotential heigh
+  ! 500hPa geopotential height
   if (l_z500) then
      status = nf90_def_var(fileID,'Z500',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(7))
      if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, Z500'
@@ -564,6 +635,22 @@ program WRF3D_pp
      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable Z500'
      status = nf90_put_att(fileID,varIDout(7),"stagger","")
      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable Z500'
+  endif
+
+  ! 500hPa geopotential height
+  if (l_q700) then
+     status = nf90_def_var(fileID,'Q700',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(8))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, Q700'
+     status = nf90_put_att(fileID,varIDout(8),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable Q700'
+     status = nf90_put_att(fileID,varIDout(8),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable Q700'
+     status = nf90_put_att(fileID,varIDout(8),"description","SPECIFIC HUMIDITY @ 700hPa")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable Q700'
+     status = nf90_put_att(fileID,varIDout(8),"units","kg/kg")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable Q700'
+     status = nf90_put_att(fileID,varIDout(8),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable Q700'
   endif
   
   ! Exit define mode
@@ -592,6 +679,10 @@ program WRF3D_pp
   if (l_z500) then
      status = nf90_put_var(fileID,varIDout(7),z500)
      if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, Z500'
+  endif
+  if (l_q700) then
+     status = nf90_put_var(fileID,varIDout(8),q700)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, Q700'
   endif
   
   ! Close output file

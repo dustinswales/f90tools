@@ -8,5 +8,6 @@
   l_ivt   = .true., ! Compute IVT?
   l_z0k   = .true., ! Compute freezing-level height?
   l_smois = .true., ! Extract soil moisture at z_soil?
-  l_z500  = .true.  ! Compute 500hPa geopotential height?
+  l_z500  = .true., ! Compute 500hPa geopotential height?
+  l_q700  = .true.  ! Compute 700hPa specific-humidity?
 /
