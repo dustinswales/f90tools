@@ -2,10 +2,9 @@
 !
 ! The purpose of this program is to post-process WRF 3D data. Non-standard WRF
 ! outputs (e.g IVT and freezing-level height) are computed and output to a
-! netCDF file.
+! netCDF file. Inputs/Outputs controlled by input_namelist, wrf3d_pp_nl.txt.
 !
 ! Dustin Swales (4/2017) - Initial version (dustin.swales@noaa.gov)
-! Dustin Swales (1/2018) - Added computation of freezing-level height.
 !
 ! To compile:
 ! ifort -I/usr/local/ifort/include -L/usr/local/ifort/lib -lnetcdff WRF3D_pp.F90 -o WRF3D_pp.o
