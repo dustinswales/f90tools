@@ -3,7 +3,7 @@
 &nmlist
   fileIN  = '/data/dswales/NA-CORDEX/wrfout/wrfout_d01_2100-01-01_00:00:00',
   fileOUT = '../data/wrfout_d01_2100-01-01_00:00:00.postprocess.nc',
-  z_soil  = 0.1,
+  z_soil  = 0.1,    ! Depth for soil-moisture output (in meters)
   verbose = .true.,
   l_ivt   = .true., ! Compute IVT?
   l_z0k   = .true., ! Compute freezing-level height?
