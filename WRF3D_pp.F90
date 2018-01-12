@@ -210,6 +210,8 @@
     real,dimension(:),allocatable :: ui,vi,temp,phm,a,b
     real :: wt1,dp,wt2
     integer,dimension(1) :: xi,xf
+
+    ! By default, turn all output to off.
     logical :: &
          lread_QVAPOR = .false., &
          lread_Q2M    = .false., &
@@ -269,37 +271,14 @@
        lread_ZS     = .true.
        lread_TSLB   = .true.
     endif
-    if (any([l_z1000,l_z950,l_z900,l_z850,l_z800,l_z750,l_z700,l_z600,l_z500,l_z250])) then
-       lread_PB     = .true.
-       lread_P      = .true.
-       lread_PH     = .true.
-       lread_PHB    = .true.
-    endif
-    if (any([l_q1000,l_q950,l_q900,l_q850,l_q800,l_q750,l_q700,l_q600,l_q500,l_q250])) then
-       lread_QVAPOR = .true.
-       lread_PB     = .true.
-       lread_P      = .true.
-    endif
-    if (l_q2m) then
-       lread_Q2M    = .true.
-    endif
-    if (any([l_u1000,l_u950,l_u900,l_u850,l_u800,l_u750,l_u700,l_u600,l_u500,l_u250])) then
-       lread_U      = .true.
-    endif
     if (l_u10m) then
        lread_U10    = .true.
     endif
     if (l_v10m) then
        lread_V10    = .true.
     endif
-    if (any([l_v1000,l_v950,l_v900,l_v850,l_v800,l_v750,l_v700,l_v600,l_v500,l_v250])) then
-       lread_V      = .true.
-    endif
-    if (any([l_t1000,l_t950,l_t900,l_t850,l_t800,l_t750,l_t700,l_t600,l_t500,l_t250])) then
-       lread_T      = .true.
-       lread_T00    = .true.
-       lread_PB     = .true.
-       lread_P      = .true.
+    if (l_q2m) then
+       lread_Q2M    = .true.
     endif
     if (l_t2m) then
        lread_T2M    = .true.
@@ -317,6 +296,40 @@
        Lread_SST   = .true.
     endif
     
+    if (any([l_z1000,l_z950,l_z900,l_z850,l_z800,l_z750,l_z700,l_z600,l_z500,l_z250])) then
+       lread_PB     = .true.
+       lread_P      = .true.
+       lread_PH     = .true.
+       lread_PHB    = .true.
+       lread_HGT    = .true.
+       lread_PSFC   = .true.
+    endif
+    if (any([l_q1000,l_q950,l_q900,l_q850,l_q800,l_q750,l_q700,l_q600,l_q500,l_q250])) then
+       lread_QVAPOR = .true.
+       lread_PB     = .true.
+       lread_P      = .true.
+       lread_PSFC   = .true.
+       lread_HGT    = .true.
+    endif
+    if (any([l_u1000,l_u950,l_u900,l_u850,l_u800,l_u750,l_u700,l_u600,l_u500,l_u250])) then
+       lread_U      = .true.
+       lread_PSFC   = .true.
+       lread_HGT    = .true.
+    endif
+    if (any([l_v1000,l_v950,l_v900,l_v850,l_v800,l_v750,l_v700,l_v600,l_v500,l_v250])) then
+       lread_V      = .true.
+       lread_PSFC   = .true.
+       lread_HGT    = .true.
+    endif
+    if (any([l_t1000,l_t950,l_t900,l_t850,l_t800,l_t750,l_t700,l_t600,l_t500,l_t250])) then
+       lread_T      = .true.
+       lread_T00    = .true.
+       lread_PB     = .true.
+       lread_P      = .true.
+       lread_PSFC   = .true.
+       lread_HGT    = .true.
+   endif
+
     ! #############################################################################
     ! C) Data ingest
     ! #############################################################################
@@ -759,6 +772,17 @@
              if (any([l_t1000,l_t950,l_t900,l_t850,l_t800,l_t750,l_t700,l_t600,l_t500,l_t250]) .or. l_z0k) then
                 temp = (ta(ij,ik,:,ii)+t00(ii))*(101325.0/p(ij,ik,:,ii))**(-0.286)
              endif
+
+             ! Geopotential heights are on a staggerd vertical grid, so compute mass-
+             ! centered geopotential height.
+             if (any([l_u1000,l_u950,l_u900,l_u850,l_u800,l_u750,l_u700,l_u600,l_u500,l_u250]) .or.  &
+                 any([l_v1000,l_v950,l_v900,l_v850,l_v800,l_v750,l_v700,l_v600,l_v500,l_v250]) .or.  &
+                 any([l_t1000,l_t950,l_t900,l_t850,l_t800,l_t750,l_t700,l_t600,l_t500,l_t250]) .or.  &
+                 any([l_q1000,l_q950,l_q900,l_q850,l_q800,l_q750,l_q700,l_q600,l_q500,l_q250]) .or.  &
+                 any([l_z1000,l_z950,l_z900,l_z850,l_z800,l_z750,l_z700,l_z600,l_z500,l_z250]) .or.  &
+                 l_z0k) then
+                phm  = (hgt(ij,ik,1:nlev_stag-1,ii)+hgt(ij,ik,2:nlev_stag,ii))*0.5
+             endif
              
              ! ######################################################################
              ! Compute integrated vapor transport (IVT)
@@ -766,7 +790,7 @@
              if (l_ivt) then
                 do il=1,nLev
                    ! Compute pressure change across layer.
-                   if (il .eq. 1)                    dp = psfc(ij,ij,ii)-sum(p(ij,ik,il:il+1,ii))/2.              ! Bottommost level
+                   if (il .eq. 1)                    dp = psfc(ij,ik,ii)-sum(p(ij,ik,il:il+1,ii))/2.              ! Bottommost level
                    if (il .ne. 1 .and. il .ne. nLev) dp = sum(p(ij,ik,il-1:il,ii))/2.-sum(p(ij,ik,il:il+1,ii))/2. ! Middle levels
                    if (il .eq. nLev)                 dp = 0.                                                      ! Top level
                    ! Integrate vertically.
@@ -779,10 +803,6 @@
              ! Compute freezing-level height.
              ! ######################################################################
              if (l_z0k) then
-                ! Geopotential heights are on a staggerd vertical grid, so compute mass-
-                ! centered geopotential height.
-                phm  = (hgt(ij,ik,1:nlev_stag-1,ii)+hgt(ij,ik,2:nlev_stag,ii))*0.5
-                
                 ! Only compute if freezing level is present.
                 if (any(temp .gt. 273.16)) then
                    ! What is the highest level that is above freezing?
