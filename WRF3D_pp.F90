@@ -24,9 +24,11 @@ program WRF3D_pp
        fileOUT   ! Output file
   logical :: &
        verbose, & ! Turn on/off info print to screen
+       toa2sfc, & ! If vertical ordering is from TOA-2_SFC, set to .true.
        l_ivt,   & ! Compute IVT?
        l_z0k,   & ! Compute freezing level height?
-       l_smois, & ! Compute soil moisture?
+       l_smois, & ! Output soil moisture?
+       l_tslb,  & ! Output soil temperature?
        l_z1000, & ! Output 1000hPa geopotential?
        l_z950,  & ! Output 950hPa geopotential?
        l_z900,  & ! Output 900hPa geopotential?
@@ -47,33 +49,46 @@ program WRF3D_pp
        l_q600,  & ! Output 600hPa specific-humidity?
        l_q500,  & ! Output 500hPa specific-humidity?
        l_q250,  & ! Output 250hPa specific-humidity?
-       l_u1000, & ! Output 1000hPa U-component of wind??
-       l_u950,  & ! Output 950hPa U-component of wind??
-       l_u900,  & ! Output 900hPa U-component of wind??
-       l_u850,  & ! Output 850hPa U-component of wind??
-       l_u800,  & ! Output 800hPa U-component of wind??
-       l_u750,  & ! Output 750hPa U-component of wind??
-       l_u700,  & ! Output 700hPa U-component of wind??
-       l_u600,  & ! Output 600hPa U-component of wind??
-       l_u500,  & ! Output 500hPa U-component of wind??
-       l_u250,  & ! Output 250hPa U-component of wind??
-       l_v1000, & ! Output 1000hPa V-component of wind??
-       l_v950,  & ! Output 950hPa V-component of wind??
-       l_v900,  & ! Output 900hPa V-component of wind??
-       l_v850,  & ! Output 850hPa V-component of wind??
-       l_v800,  & ! Output 800hPa V-component of wind??
-       l_v750,  & ! Output 750hPa V-component of wind??
-       l_v700,  & ! Output 700hPa V-component of wind??
-       l_v600,  & ! Output 600hPa V-component of wind??
-       l_v500,  & ! Output 500hPa V-component of wind??
-       l_v250     ! Output 250hPa V-component of wind??
-  real :: &
-       z_soil
-  namelist/nmlist/fileIN,fileOUT,z_soil,verbose,l_ivt,l_z0k,l_smois,&
+       l_q2m,   & ! Output near surface specific-humidity?
+       l_u1000, & ! Output 1000hPa U-component of wind?
+       l_u950,  & ! Output 950hPa U-component of wind?
+       l_u900,  & ! Output 900hPa U-component of wind?
+       l_u850,  & ! Output 850hPa U-component of wind?
+       l_u800,  & ! Output 800hPa U-component of wind?
+       l_u750,  & ! Output 750hPa U-component of wind?
+       l_u700,  & ! Output 700hPa U-component of wind?
+       l_u600,  & ! Output 600hPa U-component of wind?
+       l_u500,  & ! Output 500hPa U-component of wind?
+       l_u250,  & ! Output 250hPa U-component of wind?
+       l_u2m,   & ! Output near surface U-component of wind?
+       l_v1000, & ! Output 1000hPa V-component of wind?
+       l_v950,  & ! Output 950hPa V-component of wind?
+       l_v900,  & ! Output 900hPa V-component of wind?
+       l_v850,  & ! Output 850hPa V-component of wind?
+       l_v800,  & ! Output 800hPa V-component of wind?
+       l_v750,  & ! Output 750hPa V-component of wind?
+       l_v700,  & ! Output 700hPa V-component of wind?
+       l_v600,  & ! Output 600hPa V-component of wind?
+       l_v500,  & ! Output 500hPa V-component of wind?
+       l_v250,  & ! Output 250hPa V-component of wind?
+       l_v2m,   & ! Output near surface V-component of wind?
+       l_t1000, & ! Output 1000hPa temperature?
+       l_t950,  & ! Output 950hPa temperature?
+       l_t900,  & ! Output 900hPa temperature?
+       l_t850,  & ! Output 850hPa temperature?
+       l_t800,  & ! Output 800hPa temperature?
+       l_t750,  & ! Output 750hPa temperature?
+       l_t700,  & ! Output 700hPa temperature?
+       l_t600,  & ! Output 600hPa temperature?
+       l_t500,  & ! Output 500hPa temperature?
+       l_t250,  & ! Output 250hPa temperature?
+       l_t2m      ! Output near surface temperature?
+  namelist/nmlist/fileIN,fileOUT,verbose,toa2sfc,l_ivt,l_z0k,l_smois,l_tslb,&
        l_z1000,l_z950,l_z900,l_z850,l_z800,l_z750,l_z700,l_z600,l_z500,l_z250,&
-       l_q1000,l_q950,l_q900,l_q850,l_q800,l_q750,l_q700,l_q600,l_q500,l_q250,&
-       l_u1000,l_u950,l_u900,l_u850,l_u800,l_u750,l_u700,l_u600,l_u500,l_u250,&
-       l_v1000,l_v950,l_v900,l_v850,l_v800,l_v750,l_v700,l_v600,l_v500,l_v250
+       l_q1000,l_q950,l_q900,l_q850,l_q800,l_q750,l_q700,l_q600,l_q500,l_q250,l_q2m,&
+       l_u1000,l_u950,l_u900,l_u850,l_u800,l_u750,l_u700,l_u600,l_u500,l_u250,l_u2m,&
+       l_v1000,l_v950,l_v900,l_v850,l_v800,l_v750,l_v700,l_v600,l_v500,l_v250,l_v2m,&
+       l_t1000,l_t950,l_t900,l_t850,l_t800,l_t750,l_t700,l_t600,l_t500,l_t250,l_t2m
 
   ! WRF fields
   integer :: &
@@ -95,7 +110,8 @@ program WRF3D_pp
        ta,        & ! WRF input field: Pertubation potential temp.       (T)       (K)
        ph,        & ! WRF input field: Pertubation geopotential          (PH)      (m2/s2)
        phb,       & ! WRF input field: Base-state geopotential           (PHB)     (m2/s2)
-       smois        ! WRF input field: Soil mosisture                    (SMOIS)   (m3/m3)
+       smois,     & ! WRF input field: Soil mosisture                    (SMOIS)   (m3/m3)
+       tslb         ! WRF input field: Soil temperature                  (TSLB)    (K)
   real,dimension(:,:,:),allocatable :: &
        lon,       & ! WRF input field: Longitude                         (XLONG)   (degree_east)
        lat,       & ! WRF input field: Latitude                          (XLAT)    (degree_north)
@@ -144,6 +160,7 @@ program WRF3D_pp
        q600,      & ! WRF specific-humidity @ 600hPa         (kg/kg)
        q500,      & ! WRF specific-humidity @ 500hPa         (kg/kg)
        q250,      & ! WRF specific-humidity @ 250hPa         (kg/kg)
+       q2m,       & ! WRF specific-humidity near surface     (kg/kg)     
        u1000,     & ! WRF u-wind @ 1000hPa                   (m/s)
        u950,      & ! WRF u-wind @ 950hPa                    (m/s)
        u900,      & ! WRF u-wind @ 900hPa                    (m/s)
@@ -154,6 +171,7 @@ program WRF3D_pp
        u600,      & ! WRF u-wind @ 600hPa                    (m/s)
        u500,      & ! WRF u-wind @ 500hPa                    (m/s)
        u250,      & ! WRF u-wind @ 250hPa                    (m/s)     
+       u2m,       & ! WRF u-wind near surface                (m/s)     
        v1000,     & ! WRF v-wind @ 1000hPa                   (m/s)
        v950,      & ! WRF v-wind @ 950hPa                    (m/s)
        v900,      & ! WRF v-wind @ 900hPa                    (m/s)
@@ -164,9 +182,20 @@ program WRF3D_pp
        v600,      & ! WRF v-wind @ 600hPa                    (m/s)
        v500,      & ! WRF v-wind @ 500hPa                    (m/s)
        v250,      & ! WRF v-wind @ 250hPa                    (m/s)
-       soilMoisture ! WRF soil mositure @ z_soil             (m3/m3)
-  
-  integer,dimension(50) :: dimID,varIDout
+       v2m,       & ! WRF v-wind near surface                (m/s)     
+       t1000,     & ! WRF temperature @ 1000hPa              (K)
+       t950,      & ! WRF temperature @ 950hPa               (K)
+       t900,      & ! WRF temperature @ 900hPa               (K)
+       t850,      & ! WRF temperature @ 850hPa               (K)
+       t800,      & ! WRF temperature @ 800hPa               (K)
+       t750,      & ! WRF temperature @ 750hPa               (K)
+       t700,      & ! WRF temperature @ 700hPa               (K)
+       t600,      & ! WRF temperature @ 600hPa               (K)
+       t500,      & ! WRF temperature @ 500hPa               (K)
+       t250,      & ! WRF temperature @ 250hPa               (K)
+       t2m          ! WRF temperature near surface           (K) 
+       
+  integer,dimension(70) :: dimID,varIDout
   character(len=19) :: tempTime
   integer :: status,fileID,varID,ii,ij,ik,il
   real,dimension(:),allocatable :: ui,vi,temp,phm,a,b
@@ -185,7 +214,8 @@ program WRF3D_pp
        lread_T00    = .false., &
        lread_HGT    = .false., &
        lread_ZS     = .false., &
-       lread_SMOIS  = .false.
+       lread_SMOIS  = .false., &
+       lread_TSLB   = .false.
 
   ! #############################################################################
   ! A) Read in namelist
@@ -195,7 +225,7 @@ program WRF3D_pp
   close(10)
 
   ! #############################################################################
-  ! B) What fields need to be read in?
+  ! B) What WRF fields need to be read in?
   ! #############################################################################
   if (l_ivt) then
      lread_QVAPOR = .true.
@@ -218,24 +248,34 @@ program WRF3D_pp
      lread_ZS     = .true.
      lread_SMOIS  = .true.
   endif
+  if (l_tslb) then
+     lread_ZS     = .true.
+     lread_TSLB   = .true.
+  endif
   if (any([l_z1000,l_z950,l_z900,l_z850,l_z800,l_z750,l_z700,l_z600,l_z500,l_z250])) then
      lread_PB     = .true.
      lread_P      = .true.
      lread_PH     = .true.
      lread_PHB    = .true.
   endif
-  if (any([l_q1000,l_q950,l_q900,l_q850,l_q800,l_q750,l_q700,l_q600,l_q500,l_q250])) then
+  if (any([l_q1000,l_q950,l_q900,l_q850,l_q800,l_q750,l_q700,l_q600,l_q500,l_q250,l_q2m])) then
      lread_QVAPOR = .true.
-     lread_PSFC   = .true.
      lread_PB     = .true.
      lread_P      = .true.
   endif
-  if (any([l_u1000,l_u950,l_u900,l_u850,l_u800,l_u750,l_u700,l_u600,l_u500,l_u250])) then
+  if (any([l_u1000,l_u950,l_u900,l_u850,l_u800,l_u750,l_u700,l_u600,l_u500,l_u250,l_u2m])) then
      lread_U      = .true.
   endif
-  if (any([l_v1000,l_v950,l_v900,l_v850,l_v800,l_v750,l_v700,l_v600,l_v500,l_v250])) then
+  if (any([l_v1000,l_v950,l_v900,l_v850,l_v800,l_v750,l_v700,l_v600,l_v500,l_v250,l_v2m])) then
      lread_V      = .true.
   endif
+  if (any([l_t1000,l_t950,l_t900,l_t850,l_t800,l_t750,l_t700,l_t600,l_t500,l_t250,l_t2m])) then
+     lread_T      = .true.
+     lread_T00    = .true.
+     lread_PB     = .true.
+     lread_P      = .true.
+  endif
+  
   ! #############################################################################
   ! C) Data ingest
   ! #############################################################################
@@ -489,6 +529,16 @@ program WRF3D_pp
         status = nf90_get_var(fileID,varID,smois)
      endif
   endif
+
+  if (lread_TSLB) then
+     ! Soil temperature
+     status = nf90_inq_varid(fileID,"TSLB",varID)
+     if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, TSLB'
+     if (status == nf90_NoErr) then
+        allocate(tslb(nLon,nLat,nSoil_stag,nTime))
+        status = nf90_get_var(fileID,varID,tslb)
+     endif
+  endif
   
   ! 4) Close file
   status=nf90_close(fileID)
@@ -502,209 +552,95 @@ program WRF3D_pp
   ! #############################################################################
 
   ! Compute pressure and height.
-  !if (l_ivt .or. l_z0k .or. l_z500 .or. l_q700) then
   if (allocated(pb) .and. allocated(pp)) then
      allocate(p(nLon,nLat,nLev,nTime))
      p   = pb+pp
   endif
-  !if (l_z0k .or. l_z500) then
   if (allocated(ph) .and. allocated(phb)) then
      allocate(hgt(nLon,nLat,nLev_stag,nTime))
      hgt = (ph+phb)/9.8
   endif
 
-  ! Allocate and initialize
-  if (l_ivt) then
-     allocate(ui(nLev),vi(nLev), ivtU(nLon,nLat,nTime), ivtV(nLon,nLat,nTime),a(nLev))
-     ivtU(:,:,:) = 0.
-     ivtV(:,:,:) = 0.
-  endif
-  if (l_z0k) then
-     allocate(z0k(nLon,nLat,nTime),temp(nLev),phm(nLev))
-     z0k(:,:,:)  = 0.
-  endif
-  if (l_smois) then
-     allocate(b(nSoil_stag),soilMoisture(nLon,nLat,nTime))
-     soilMoisture(:,:,:) = 0.
-  endif
-  if (l_z1000) then
-     allocate(z1000(nLon,nLat,nTime))
-     z1000(:,:,:) = 0.
-  endif
-  if (l_z950) then
-     allocate(z950(nLon,nLat,nTime))
-     z950(:,:,:) = 0.
-  endif
-  if (l_z900) then
-     allocate(z900(nLon,nLat,nTime))
-     z900(:,:,:) = 0.
-  endif
-  if (l_z850) then
-     allocate(z850(nLon,nLat,nTime))
-     z850(:,:,:) = 0.
-  endif
-  if (l_z800) then
-     allocate(z800(nLon,nLat,nTime))
-     z800(:,:,:) = 0.
-  endif
-  if (l_z750) then
-     allocate(z750(nLon,nLat,nTime))
-     z750(:,:,:) = 0.
-  endif
-  if (l_z700) then
-     allocate(z700(nLon,nLat,nTime))
-     z700(:,:,:) = 0.
-  endif
-  if (l_z600) then
-     allocate(z600(nLon,nLat,nTime))
-     z600(:,:,:) = 0.
-  endif
-  if (l_z500) then
-     allocate(z500(nLon,nLat,nTime))
-     z500(:,:,:) = 0.
-  endif
-  if (l_z250) then
-     allocate(z250(nLon,nLat,nTime))
-     z250(:,:,:) = 0.
-  endif
-  if (l_q1000) then
-     allocate(q1000(nLon,nLat,nTime))
-     q1000(:,:,:) = 0.
-  endif
-  if (l_q950) then
-     allocate(q950(nLon,nLat,nTime))
-     q950(:,:,:) = 0.
-  endif
-  if (l_q900) then
-     allocate(q900(nLon,nLat,nTime))
-     q900(:,:,:) = 0.
-  endif
-  if (l_q850) then
-     allocate(q850(nLon,nLat,nTime))
-     q850(:,:,:) = 0.
-  endif
-  if (l_q800) then
-     allocate(q800(nLon,nLat,nTime))
-     q800(:,:,:) = 0.
-  endif
-  if (l_q750) then
-     allocate(q750(nLon,nLat,nTime))
-     q750(:,:,:) = 0.
-  endif
-  if (l_q700) then
-     allocate(q700(nLon,nLat,nTime))
-     q700(:,:,:) = 0.
-  endif
-  if (l_q600) then
-     allocate(q600(nLon,nLat,nTime))
-     q600(:,:,:) = 0.
-  endif
-  if (l_q500) then
-     allocate(q500(nLon,nLat,nTime))
-     q500(:,:,:) = 0.
-  endif
-  if (l_q250) then
-     allocate(q250(nLon,nLat,nTime))
-     q250(:,:,:) = 0.
-  endif
-  if (l_u1000) then
-     allocate(u1000(nLon,nLat,nTime))
-     u1000(:,:,:) = 0.
-  endif
-  if (l_u950) then
-     allocate(u950(nLon,nLat,nTime))
-     u950(:,:,:) = 0.
-  endif
-  if (l_u900) then
-     allocate(u900(nLon,nLat,nTime))
-     u900(:,:,:) = 0.
-  endif
-  if (l_u850) then
-     allocate(u850(nLon,nLat,nTime))
-     u850(:,:,:) = 0.
-  endif
-  if (l_u800) then
-     allocate(u800(nLon,nLat,nTime))
-     u800(:,:,:) = 0.
-  endif
-  if (l_u750) then
-     allocate(u750(nLon,nLat,nTime))
-     u750(:,:,:) = 0.
-  endif
-  if (l_u700) then
-     allocate(u700(nLon,nLat,nTime))
-     u700(:,:,:) = 0.
-  endif
-  if (l_u600) then
-     allocate(u600(nLon,nLat,nTime))
-     u600(:,:,:) = 0.
-  endif
-  if (l_u500) then
-     allocate(u500(nLon,nLat,nTime))
-     u500(:,:,:) = 0.
-  endif
-  if (l_u250) then
-     allocate(u250(nLon,nLat,nTime))
-     u250(:,:,:) = 0.
-  endif
-  if (l_v1000) then
-     allocate(v1000(nLon,nLat,nTime))
-     v1000(:,:,:) = 0.
-  endif
-  if (l_v950) then
-     allocate(v950(nLon,nLat,nTime))
-     v950(:,:,:) = 0.
-  endif
-  if (l_v900) then
-     allocate(v900(nLon,nLat,nTime))
-     v900(:,:,:) = 0.
-  endif
-  if (l_v850) then
-     allocate(v850(nLon,nLat,nTime))
-     v850(:,:,:) = 0.
-  endif
-  if (l_v800) then
-     allocate(v800(nLon,nLat,nTime))
-     v800(:,:,:) = 0.
-  endif
-  if (l_v750) then
-     allocate(v750(nLon,nLat,nTime))
-     v750(:,:,:) = 0.
-  endif
-  if (l_v700) then
-     allocate(v700(nLon,nLat,nTime))
-     v700(:,:,:) = 0.
-  endif
-  if (l_v600) then
-     allocate(v600(nLon,nLat,nTime))
-     v600(:,:,:) = 0.
-  endif
-  if (l_v500) then
-     allocate(v500(nLon,nLat,nTime))
-     v500(:,:,:) = 0.
-  endif
-  if (l_v250) then
-     allocate(v250(nLon,nLat,nTime))
-     v250(:,:,:) = 0.
-  endif
-  
-  ! Loop over all points/times and compute IVT and freezing level heights.
-  if (verbose) print*,'Regridding velocity fields, computing IVT and freezing-level height: '
+  ! Allocate space.
+  if (l_ivt)   allocate(ui(nLev),vi(nLev), ivtU(nLon,nLat,nTime), ivtV(nLon,nLat,nTime),a(nLev))
+  if (l_z0k)   allocate(z0k(nLon,nLat,nTime),temp(nLev),phm(nLev))
+  if (l_z1000) allocate(z1000(nLon,nLat,nTime))
+  if (l_z950)  allocate(z950(nLon,nLat,nTime))
+  if (l_z900)  allocate(z900(nLon,nLat,nTime))
+  if (l_z850)  allocate(z850(nLon,nLat,nTime))
+  if (l_z800)  allocate(z800(nLon,nLat,nTime))
+  if (l_z750)  allocate(z750(nLon,nLat,nTime))
+  if (l_z700)  allocate(z700(nLon,nLat,nTime))
+  if (l_z600)  allocate(z600(nLon,nLat,nTime))
+  if (l_z500)  allocate(z500(nLon,nLat,nTime))
+  if (l_z250)  allocate(z250(nLon,nLat,nTime))
+  if (l_q1000) allocate(q1000(nLon,nLat,nTime))
+  if (l_q950)  allocate(q950(nLon,nLat,nTime))
+  if (l_q900)  allocate(q900(nLon,nLat,nTime))
+  if (l_q850)  allocate(q850(nLon,nLat,nTime))
+  if (l_q800)  allocate(q800(nLon,nLat,nTime))
+  if (l_q750)  allocate(q750(nLon,nLat,nTime))
+  if (l_q700)  allocate(q700(nLon,nLat,nTime))
+  if (l_q600)  allocate(q600(nLon,nLat,nTime))
+  if (l_q500)  allocate(q500(nLon,nLat,nTime))
+  if (l_q250)  allocate(q250(nLon,nLat,nTime))
+  if (l_q2m)   allocate(q2m(nLon,nLat,nTime))
+  if (l_u1000) allocate(u1000(nLon,nLat,nTime))
+  if (l_u950)  allocate(u950(nLon,nLat,nTime))
+  if (l_u900)  allocate(u900(nLon,nLat,nTime))
+  if (l_u850)  allocate(u850(nLon,nLat,nTime))
+  if (l_u800)  allocate(u800(nLon,nLat,nTime))
+  if (l_u750)  allocate(u750(nLon,nLat,nTime))
+  if (l_u700)  allocate(u700(nLon,nLat,nTime))
+  if (l_u600)  allocate(u600(nLon,nLat,nTime))
+  if (l_u500)  allocate(u500(nLon,nLat,nTime))
+  if (l_u250)  allocate(u250(nLon,nLat,nTime))
+  if (l_u2m)   allocate(u2m(nLon,nLat,nTime))
+  if (l_v1000) allocate(v1000(nLon,nLat,nTime))
+  if (l_v950)  allocate(v950(nLon,nLat,nTime))
+  if (l_v900)  allocate(v900(nLon,nLat,nTime))
+  if (l_v850)  allocate(v850(nLon,nLat,nTime))
+  if (l_v800)  allocate(v800(nLon,nLat,nTime))
+  if (l_v750)  allocate(v750(nLon,nLat,nTime))
+  if (l_v700)  allocate(v700(nLon,nLat,nTime))
+  if (l_v600)  allocate(v600(nLon,nLat,nTime))
+  if (l_v500)  allocate(v500(nLon,nLat,nTime))
+  if (l_v250)  allocate(v250(nLon,nLat,nTime))
+  if (l_v2m)   allocate(v2m(nLon,nLat,nTime))
+  if (l_t1000) allocate(t1000(nLon,nLat,nTime))
+  if (l_t950)  allocate(t950(nLon,nLat,nTime))
+  if (l_t900)  allocate(t900(nLon,nLat,nTime))
+  if (l_t850)  allocate(t850(nLon,nLat,nTime))
+  if (l_t800)  allocate(t800(nLon,nLat,nTime))
+  if (l_t750)  allocate(t750(nLon,nLat,nTime))
+  if (l_t700)  allocate(t700(nLon,nLat,nTime))
+  if (l_t600)  allocate(t600(nLon,nLat,nTime))
+  if (l_t500)  allocate(t500(nLon,nLat,nTime))
+  if (l_t250)  allocate(t250(nLon,nLat,nTime))
+  if (l_t2m)   allocate(t2m(nLon,nLat,nTime))
+   
+  ! Loop over all points/times.
+  if (verbose) print*,'Begin computations... '
   do ii=1,nTime
      if (verbose) write(*,"(a12,i2,a4,i2)"),'   @Timestep ',ii,' of ',nTime
      do ij=1,nLon
         do ik=1,nLat
-           if (any([l_u1000,l_u950,l_u900,l_u850,l_u800,l_u750,l_u700,l_u600,l_u500,l_u250]) .or. &
-               any([l_v1000,l_v950,l_v900,l_v850,l_v800,l_v750,l_v700,l_v600,l_v500,l_v250]) .or. &
-               l_ivt) then
-              ! First, put winds on mass centered grid points, in WRF the velocity
-              ! components are on staggered grids.
-              ! Eastward component of wind (on mass-centered point)
+           ! ! If needed, put winds on mass centered grid points, in WRF the velocity
+           ! components are on staggered grids.
+           ! Eastward component of wind (on mass-centered point)
+           if (any([l_u1000,l_u950,l_u900,l_u850,l_u800,l_u750,l_u700,l_u600,l_u500,l_u250,l_u2m]) .or. l_ivt) then
               wt1 = (lon_u(ij+1,ik,ii)-lon(ij,ik,ii))/(lon_u(ij+1,ik,ii)-lon_u(ij,ik,ii))
               ui = wt1*u(ij,ik,:,ii)+(1-wt1)*u(ij+1,ik,:,ii)
-              ! Northward component of wind (on mass-centered point)
+           endif
+           ! Northward component of wind (on mass-centered point)
+           if (any([l_v1000,l_v950,l_v900,l_v850,l_v800,l_v750,l_v700,l_v600,l_v500,l_v250,l_v2m]) .or. l_ivt) then
               wt1 = (lat_v(ij,ik+1,ii)-lat(ij,ik,ii)) / (lat_v(ij,ik+1,ii)-lat_v(ij,ik,ii))
               vi = wt1*v(ij,ik,:,ii)+(1-wt1)*v(ij,ik+1,:,ii)
+           endif
+
+           ! If needed, compute temperature from pertubation potential temperature.
+           if (any([l_t1000,l_t950,l_t900,l_t850,l_t800,l_t750,l_t700,l_t600,l_t500,l_t250,l_t2m]) .or. l_z0k) then
+              temp = (ta(ij,ik,:,ii)+t00(ii))*(101325.0/p(ij,ik,:,ii))**(-0.286)
            endif
            
            ! ######################################################################
@@ -726,9 +662,6 @@ program WRF3D_pp
            ! Compute freezing-level height.
            ! ######################################################################
            if (l_z0k) then
-              ! Compute temperature from pertubation potential temperature.
-              temp = (ta(ij,ik,:,ii)+t00(ii))*(101325.0/p(ij,ik,:,ii))**(-0.286)
-
               ! Geopotential heights are on a staggerd vertical grid, so compute mass-
               ! centered geopotential height.
               phm  = (hgt(ij,ik,1:nlev_stag-1,ii)+hgt(ij,ik,2:nlev_stag,ii))*0.5
@@ -747,281 +680,124 @@ program WRF3D_pp
                  z0k(ij,ik,ii) = terrainZ(ij,ik,ii)
               endif
            endif
-           
-           ! ###################################################################
-           ! Compute soil moisture at z_soil.
-           ! ###################################################################
-           if (l_smois) then
-              b  = zs-z_soil
-              xf = minloc(b,b .gt. 0)
-              xi = xf-1
-              if (xi(1) .lt. 1) then
-                 write(*,"(a37,f5.2,a17)"),'ERROR: Requested soil moisture depth, ',z_soil,' is out of bounds.'
-              endif
-              wt2 = (zs(xf(1))-z_soil)/(zs(xf(1))-zs(xi(1)))
-              soilMoisture(ij,ik,ii) = smois(ij,ik,xi(1),ii)*wt2+smois(ij,ik,xf(1),ii)*(1-wt2)
-           endif
 
            ! ###################################################################
-           ! Compute u-winds @ various levels
+           ! Compute fields at synoptic levels.
            ! ###################################################################
-           if (l_u1000) then
-              xi = minloc(p(ij,ik,:,ii)-100000.,p(ij,ik,:,ii)-100000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-100000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              u1000(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+           ! 1000hPa
+           if (any([l_u1000, l_v1000, l_q1000, l_t1000, l_z1000])) then
+              call compute_interpolation_wts(p(ij,ik,:,ii),100000.,xi,xf,wt2)
+              if (l_u1000) u1000(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+              if (l_v1000) v1000(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+              if (l_q1000) q1000(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+              if (l_t1000) t1000(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+              if (l_z1000) z1000(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
            endif
-           if (l_u950) then
-              xi = minloc(p(ij,ik,:,ii)-95000.,p(ij,ik,:,ii)-95000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-95000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              u950(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+           ! 950hPa
+           if (any([l_u950, l_v950, l_q950, l_t950, l_z950])) then
+              call compute_interpolation_wts(p(ij,ik,:,ii),95000.,xi,xf,wt2)
+              if (l_u950) u950(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+              if (l_v950) v950(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+              if (l_q950) q950(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+              if (l_t950) t950(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+              if (l_z950) z950(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
            endif
-           if (l_u900) then
-              xi = minloc(p(ij,ik,:,ii)-90000.,p(ij,ik,:,ii)-90000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-90000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              u900(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+           ! 900hPa
+           if (any([l_u900, l_v900, l_q900, l_t900, l_z900])) then
+              call compute_interpolation_wts(p(ij,ik,:,ii),90000.,xi,xf,wt2)
+              if (l_u900) u900(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+              if (l_v900) v900(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+              if (l_q900) q900(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+              if (l_t900) t900(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+              if (l_z900) z900(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
            endif
-           if (l_u850) then
-              xi = minloc(p(ij,ik,:,ii)-85000.,p(ij,ik,:,ii)-85000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-85000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              u850(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+           ! 850hPa
+           if (any([l_u850, l_v850, l_q850, l_t850, l_z850])) then
+              call compute_interpolation_wts(p(ij,ik,:,ii),85000.,xi,xf,wt2)
+              if (l_u850) u850(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+              if (l_v850) v850(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+              if (l_q850) q850(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+              if (l_t850) t850(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+              if (l_z850) z850(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
            endif
-           if (l_u800) then
-              xi = minloc(p(ij,ik,:,ii)-80000.,p(ij,ik,:,ii)-80000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-80000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              u800(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+           ! 800hPa
+           if (any([l_u800, l_v800, l_q800, l_t800, l_z800])) then
+              call compute_interpolation_wts(p(ij,ik,:,ii),80000.,xi,xf,wt2)
+              if (l_u800) u800(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+              if (l_v800) v800(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+              if (l_q800) q800(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+              if (l_t800) t800(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+              if (l_z800) z800(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
            endif
-           if (l_u750) then
-              xi = minloc(p(ij,ik,:,ii)-75000.,p(ij,ik,:,ii)-75000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-75000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              u750(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+           ! 750hPa
+           if (any([l_u750, l_v750, l_q750, l_t750, l_z750])) then
+              call compute_interpolation_wts(p(ij,ik,:,ii),75000.,xi,xf,wt2)
+              if (l_u750) u750(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+              if (l_v750) v750(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+              if (l_q750) q750(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+              if (l_t750) t750(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+              if (l_z750) z750(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
            endif
-           if (l_u700) then
-              xi = minloc(p(ij,ik,:,ii)-70000.,p(ij,ik,:,ii)-70000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-70000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              u700(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+           ! 700hPa
+           if (any([l_u700, l_v700, l_q700, l_t700, l_z700])) then
+              call compute_interpolation_wts(p(ij,ik,:,ii),70000.,xi,xf,wt2)
+              if (l_u700) u700(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+              if (l_v700) v700(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+              if (l_q700) q700(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+              if (l_t700) t700(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+              if (l_z700) z700(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
            endif
-           if (l_u600) then
-              xi = minloc(p(ij,ik,:,ii)-60000.,p(ij,ik,:,ii)-60000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-60000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              u600(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+           ! 600hPa
+           if (any([l_u600, l_v600, l_q600, l_t600, l_z600])) then
+              call compute_interpolation_wts(p(ij,ik,:,ii),60000.,xi,xf,wt2)
+              if (l_u600) u600(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+              if (l_v600) v600(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+              if (l_q600) q600(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+              if (l_t600) t600(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+              if (l_z600) z600(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
            endif
-           if (l_u500) then
-              xi = minloc(p(ij,ik,:,ii)-50000.,p(ij,ik,:,ii)-50000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-50000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              u500(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+           ! 500hPa
+           if (any([l_u500, l_v500, l_q500, l_t500, l_z500])) then
+              call compute_interpolation_wts(p(ij,ik,:,ii),50000.,xi,xf,wt2)
+              if (l_u500) u500(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+              if (l_v500) v500(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+              if (l_q500) q500(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+              if (l_t500) t500(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+              if (l_z500) z500(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
            endif
-           if (l_u250) then
-              xi = minloc(p(ij,ik,:,ii)-25000.,p(ij,ik,:,ii)-25000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-25000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              u250(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
-           endif
-
-           ! ###################################################################
-           ! Compute v-winds @ various levels
-           ! ###################################################################
-           if (l_v1000) then
-              xi = minloc(p(ij,ik,:,ii)-100000.,p(ij,ik,:,ii)-100000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-100000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              v1000(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-           endif
-           if (l_v950) then
-              xi = minloc(p(ij,ik,:,ii)-95000.,p(ij,ik,:,ii)-95000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-95000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              v950(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-           endif
-           if (l_v900) then
-              xi = minloc(p(ij,ik,:,ii)-90000.,p(ij,ik,:,ii)-90000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-90000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              v900(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-           endif
-           if (l_v850) then
-              xi = minloc(p(ij,ik,:,ii)-85000.,p(ij,ik,:,ii)-85000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-85000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              v850(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-           endif
-           if (l_v800) then
-              xi = minloc(p(ij,ik,:,ii)-80000.,p(ij,ik,:,ii)-80000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-80000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              v800(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-           endif
-           if (l_v750) then
-              xi = minloc(p(ij,ik,:,ii)-75000.,p(ij,ik,:,ii)-75000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-75000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              v750(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-           endif
-           if (l_v700) then
-              xi = minloc(p(ij,ik,:,ii)-70000.,p(ij,ik,:,ii)-70000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-70000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              v700(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-           endif
-           if (l_v600) then
-              xi = minloc(p(ij,ik,:,ii)-60000.,p(ij,ik,:,ii)-60000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-60000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              v600(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-           endif
-           if (l_v500) then
-              xi = minloc(p(ij,ik,:,ii)-50000.,p(ij,ik,:,ii)-50000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-50000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              v500(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-           endif
-           if (l_v250) then
-              xi = minloc(p(ij,ik,:,ii)-25000.,p(ij,ik,:,ii)-25000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-25000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              v250(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+           ! 250hPa
+           if (any([l_u250, l_v250, l_q250, l_t250, l_z250])) then
+              call compute_interpolation_wts(p(ij,ik,:,ii),25000.,xi,xf,wt2)
+              if (l_u250) u250(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+              if (l_v250) v250(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+              if (l_q250) q250(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+              if (l_t250) t250(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+              if (l_z250) z250(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
            endif
            
            ! ###################################################################
-           ! Compute geopotential heights @ various levels
+           ! Extract near surface fields.
            ! ###################################################################
-           if (l_z1000) then
-              xi = minloc(p(ij,ik,:,ii)-100000.,p(ij,ik,:,ii)-100000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-100000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              z1000(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
+           if (l_u2m) then
+              if (.not. toa2sfc) u2m(ij,ik,ii) = ui(1)
+              if (toa2sfc)       u2m(ij,ik,ii) = ui(nLev)
            endif
-           if (l_z950) then
-              xi = minloc(p(ij,ik,:,ii)-95000.,p(ij,ik,:,ii)-95000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-95000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              z950(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
+           if (l_v2m) then
+              if (.not. toa2sfc) v2m(ij,ik,ii) = vi(1)
+              if (toa2sfc)       v2m(ij,ik,ii) = vi(nLev)
            endif
-           if (l_z900) then
-              xi = minloc(p(ij,ik,:,ii)-90000.,p(ij,ik,:,ii)-90000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-90000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              z900(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
+           if (l_q2m) then
+              if (.not. toa2sfc) q2m(ij,ik,ii) = q(ij,ik,1,ii)
+              if (toa2sfc)       q2m(ij,ik,ii) = q(ij,ik,nLev,ii)
            endif
-           if (l_z850) then
-              xi = minloc(p(ij,ik,:,ii)-85000.,p(ij,ik,:,ii)-85000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-85000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              z850(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-           if (l_z800) then
-              xi = minloc(p(ij,ik,:,ii)-80000.,p(ij,ik,:,ii)-80000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-80000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              z800(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-           if (l_z750) then
-              xi = minloc(p(ij,ik,:,ii)-75000.,p(ij,ik,:,ii)-75000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-75000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              z750(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-           if (l_z700) then
-              xi = minloc(p(ij,ik,:,ii)-70000.,p(ij,ik,:,ii)-70000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-70000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              z700(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-           if (l_z600) then
-              xi = minloc(p(ij,ik,:,ii)-60000.,p(ij,ik,:,ii)-60000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-60000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              z600(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-           if (l_z500) then
-              xi = minloc(p(ij,ik,:,ii)-50000.,p(ij,ik,:,ii)-50000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-50000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              z500(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-           if (l_z250) then
-              xi = minloc(p(ij,ik,:,ii)-25000.,p(ij,ik,:,ii)-25000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-25000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              z250(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-
-           ! ###################################################################
-           ! Compute specific-humidity @ various levels
-           ! ###################################################################         
-           if (l_q1000) then
-              xi = minloc(p(ij,ik,:,ii)-100000.,p(ij,ik,:,ii)-100000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-100000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              q1000(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-           if (l_q950) then
-              xi = minloc(p(ij,ik,:,ii)-95000.,p(ij,ik,:,ii)-95000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-95000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              q950(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-           if (l_q900) then
-              xi = minloc(p(ij,ik,:,ii)-90000.,p(ij,ik,:,ii)-90000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-90000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              q900(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-           if (l_q850) then
-              xi = minloc(p(ij,ik,:,ii)-85000.,p(ij,ik,:,ii)-85000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-85000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              q850(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-           if (l_q800) then
-              xi = minloc(p(ij,ik,:,ii)-80000.,p(ij,ik,:,ii)-80000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-80000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              q800(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-           if (l_q750) then
-              xi = minloc(p(ij,ik,:,ii)-75000.,p(ij,ik,:,ii)-75000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-75000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              q750(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-           if (l_q700) then
-              xi = minloc(p(ij,ik,:,ii)-70000.,p(ij,ik,:,ii)-70000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-70000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              q700(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-           if (l_q600) then
-              xi = minloc(p(ij,ik,:,ii)-60000.,p(ij,ik,:,ii)-60000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-60000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              q600(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-           if (l_q500) then
-              xi = minloc(p(ij,ik,:,ii)-50000.,p(ij,ik,:,ii)-50000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-50000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              q500(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-           endif
-           if (l_q250) then
-              xi = minloc(p(ij,ik,:,ii)-25000.,p(ij,ik,:,ii)-25000. .gt. 0)
-              xf = xi + 1
-              wt2 = (p(ij,ik,xf(1),ii)-25000.)/(p(ij,ik,xf(1),ii)-p(ij,ik,xi(1),ii))
-              q250(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+           if (l_t2m) then
+              if (.not. toa2sfc) t2m(ij,ik,ii) = ta(ij,ik,1,ii)
+              if (toa2sfc)       t2m(ij,ik,ii) = ta(ij,ik,nLev,ii)
            endif
 
         enddo ! Latitude
      enddo    ! Longitude
   enddo       ! Time
-
   if (verbose) print*,'Finished computations'
 
   ! #############################################################################
@@ -1041,6 +817,8 @@ program WRF3D_pp
   if (status /= nf90_NoErr) print*,'ERROR: Failure making dimension ID, south_north'
   status = nf90_def_dim(fileID,"bottom_top",nLev,dimID(4))
   if (status /= nf90_NoErr) print*,'ERROR: Failure making dimension ID, bottom_top'
+  status = nf90_def_dim(fileID,"soil_layers_stag",nSoil_stag,dimID(5))
+  if (status /= nf90_NoErr) print*,'ERROR: Failure making dimension ID, soil_layers_stag'
 
   ! Define variables and add attributes.
   ! Time
@@ -1065,7 +843,8 @@ program WRF3D_pp
   status = nf90_put_att(fileID,varIDout(1),"units","degree_north")
   if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable XLAT'
   status = nf90_put_att(fileID,varIDout(1),"stagger","")
-  if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable XLAT'  
+  if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable XLAT'
+  
   ! Longitude
   status = nf90_def_var(fileID,'XLONG',nf90_float,(/dimID(2),dimID(3)/),varIDout(2))
   if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, XLONG'
@@ -1079,6 +858,23 @@ program WRF3D_pp
   if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable XLONG'
   status = nf90_put_att(fileID,varIDout(2),"stagger","")
   if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable XLONG'
+  
+  ! Soil levels
+  if (l_smois .or. l_tslb) then
+     status = nf90_def_var(fileID,'ZS',nf90_float,(/dimID(5)/),varIDout(7))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, ZS'
+     status = nf90_put_att(fileID,varIDout(7),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable ZS'
+     status = nf90_put_att(fileID,varIDout(7),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable ZS'
+     status = nf90_put_att(fileID,varIDout(7),"description","DEPTHS OF CENTERS OF SOIL LAYERS")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable ZS'
+     status = nf90_put_att(fileID,varIDout(7),"units","m")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable ZS'
+     status = nf90_put_att(fileID,varIDout(7),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable ZS'
+  endif
+  
   ! IVT
   if (l_ivt) then
      ! x-component
@@ -1108,6 +904,7 @@ program WRF3D_pp
      status = nf90_put_att(fileID,varIDout(4),"stagger","")
      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable IVTV'
   endif
+  
   ! Freezing-level height
   if (l_z0k) then
      status = nf90_def_var(fileID,'Z0K',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(5))
@@ -1123,20 +920,37 @@ program WRF3D_pp
      status = nf90_put_att(fileID,varIDout(5),"stagger","")
      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable Z0K'
   endif
-  ! Soil mositure @ z_soil
+  
+  ! 3D Soil mositure
   if (l_smois) then
-     status = nf90_def_var(fileID,'SMOIS',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(6))
+     status = nf90_def_var(fileID,'SMOIS',nf90_float,  (/dimID(2),dimID(3),dimID(5),dimID(1)/),varIDout(6))
      if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, SMOIS'
      status = nf90_put_att(fileID,varIDout(6),"FieldType",104)
      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable SMOIS'
      status = nf90_put_att(fileID,varIDout(6),"MemoryOrder","XY")
      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable SMOIS'
-     status = nf90_put_att(fileID,varIDout(6),"description","SOIL MOISTURE @ Z_soil")
+     status = nf90_put_att(fileID,varIDout(6),"description","SOIL MOISTURE")
      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable SMOIS'
      status = nf90_put_att(fileID,varIDout(6),"units","m")
      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable SMOIS'
      status = nf90_put_att(fileID,varIDout(6),"stagger","")
      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable SMOIS'
+  endif
+  
+  ! 3D Soil temperature
+  if (l_tslb) then
+     status = nf90_def_var(fileID,'TSLB',nf90_float,  (/dimID(2),dimID(3),dimID(5),dimID(1)/),varIDout(8))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, TSLB'
+     status = nf90_put_att(fileID,varIDout(8),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable TSLB'
+     status = nf90_put_att(fileID,varIDout(8),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable TSLB'
+     status = nf90_put_att(fileID,varIDout(8),"description","SOIL TEMPERATURE")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable TSLB'
+     status = nf90_put_att(fileID,varIDout(8),"units","K")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable TSLB'
+     status = nf90_put_att(fileID,varIDout(8),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable TSLB'
   endif
 
   ! 1000hPa geopotential height
@@ -1459,6 +1273,22 @@ program WRF3D_pp
      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable Q250'
   endif
 
+  ! Near-surface specific-humidity
+  if (l_q2m) then
+     status = nf90_def_var(fileID,'Qnsfc',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(67))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, Qnsfc'
+     status = nf90_put_att(fileID,varIDout(67),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable Qnsfc'
+     status = nf90_put_att(fileID,varIDout(67),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable Qnsfc'
+     status = nf90_put_att(fileID,varIDout(67),"description","SPECIFIC HUMIDITY NEAR SURFACE")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable Qnsfc'
+     status = nf90_put_att(fileID,varIDout(67),"units","kg/kg")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable Qnsfc'
+     status = nf90_put_att(fileID,varIDout(67),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable Qnsfc'
+  endif
+  
   ! 1000hPa u-winds
   if (l_u1000) then
      status = nf90_def_var(fileID,'U1000',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(34))
@@ -1618,26 +1448,22 @@ program WRF3D_pp
      status = nf90_put_att(fileID,varIDout(43),"stagger","")
      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable U250'
   endif
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   
-
-
+  ! Near surface u-winds
+  if (l_u2m) then
+     status = nf90_def_var(fileID,'Unsfc',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(54))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, Unsfc'
+     status = nf90_put_att(fileID,varIDout(54),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable Unsfc'
+     status = nf90_put_att(fileID,varIDout(54),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable Unsfc'
+     status = nf90_put_att(fileID,varIDout(54),"description","ZONAL WIND NEAR SURCACE")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable Unsfc'
+     status = nf90_put_att(fileID,varIDout(54),"units","m/s")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable Unsfc'
+     status = nf90_put_att(fileID,varIDout(54),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable Unsfc'
+  endif
 
   ! 1000hPa v-winds
   if (l_v1000) then
@@ -1798,22 +1624,199 @@ program WRF3D_pp
      status = nf90_put_att(fileID,varIDout(53),"stagger","")
      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable V250'
   endif
+
+  ! Near-surface v-winds
+  if (l_v2m) then
+     status = nf90_def_var(fileID,'Vnsfc',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(65))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, Vnsfc'
+     status = nf90_put_att(fileID,varIDout(65),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable Vnsfc'
+     status = nf90_put_att(fileID,varIDout(65),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable Vnsfc'
+     status = nf90_put_att(fileID,varIDout(65),"description","MERIDIONAL WIND NEAR SURFACE")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable Vnsfc'
+     status = nf90_put_att(fileID,varIDout(65),"units","m/s")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable Vnsfc'
+     status = nf90_put_att(fileID,varIDout(65),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable Vnsfc'
+  endif
+
+  ! 1000hPa temperature
+  if (l_t1000) then
+     status = nf90_def_var(fileID,'T1000',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(64))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, T1000'
+     status = nf90_put_att(fileID,varIDout(64),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable T1000'
+     status = nf90_put_att(fileID,varIDout(64),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable T1000'
+     status = nf90_put_att(fileID,varIDout(64),"description","TEMPERATURE @ 1000hPa")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable T1000'
+     status = nf90_put_att(fileID,varIDout(64),"units","K")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable T1000'
+     status = nf90_put_att(fileID,varIDout(64),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable T1000'
+  endif
   
-
-
-
-
-
-
-
-
-
-
-
-
-
+  ! 950hPa temperature
+  if (l_t950) then
+     status = nf90_def_var(fileID,'T950',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(55))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, T950'
+     status = nf90_put_att(fileID,varIDout(55),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable T950'
+     status = nf90_put_att(fileID,varIDout(55),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable T950'
+     status = nf90_put_att(fileID,varIDout(55),"description","TEMPERATURE @ 950hPa")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable T950'
+     status = nf90_put_att(fileID,varIDout(55),"units","K")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable T950'
+     status = nf90_put_att(fileID,varIDout(55),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable T950'
+  endif
   
+  ! 900hPa temperature
+  if (l_t900) then
+     status = nf90_def_var(fileID,'T900',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(56))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, T900'
+     status = nf90_put_att(fileID,varIDout(56),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable T900'
+     status = nf90_put_att(fileID,varIDout(56),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable T900'
+     status = nf90_put_att(fileID,varIDout(56),"description","TEMPERATURE @ 900hPa")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable T900'
+     status = nf90_put_att(fileID,varIDout(56),"units","K")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable T900'
+     status = nf90_put_att(fileID,varIDout(56),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable T900'
+  endif
   
+  ! 850hPa temperature
+  if (l_t850) then
+     status = nf90_def_var(fileID,'T850',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(57))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, T850'
+     status = nf90_put_att(fileID,varIDout(57),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable T850'
+     status = nf90_put_att(fileID,varIDout(57),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable T850'
+     status = nf90_put_att(fileID,varIDout(57),"description","TEMPERATURE @ 850hPa")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable T850'
+     status = nf90_put_att(fileID,varIDout(57),"units","K")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable T850'
+     status = nf90_put_att(fileID,varIDout(57),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable T850'
+  endif
+  
+  ! 800hPa temperature
+  if (l_t800) then
+     status = nf90_def_var(fileID,'T800',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(58))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, T800'
+     status = nf90_put_att(fileID,varIDout(58),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable T800'
+     status = nf90_put_att(fileID,varIDout(58),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable T800'
+     status = nf90_put_att(fileID,varIDout(58),"description","TEMPERATURE @ 800hPa")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable T800'
+     status = nf90_put_att(fileID,varIDout(58),"units","K")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable T800'
+     status = nf90_put_att(fileID,varIDout(58),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable T800'
+  endif
+  
+  ! 750hPa temperature
+  if (l_t750) then
+     status = nf90_def_var(fileID,'T750',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(59))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, T750'
+     status = nf90_put_att(fileID,varIDout(59),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable T750'
+     status = nf90_put_att(fileID,varIDout(59),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable T750'
+     status = nf90_put_att(fileID,varIDout(59),"description","TEMPERATURE @ 750hPa")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable T750'
+     status = nf90_put_att(fileID,varIDout(59),"units","K")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable T750'
+     status = nf90_put_att(fileID,varIDout(59),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable T750'
+  endif
+  
+  ! 700hPa temperature
+  if (l_t700) then
+     status = nf90_def_var(fileID,'T700',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(60))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, U700'
+     status = nf90_put_att(fileID,varIDout(60),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable T700'
+     status = nf90_put_att(fileID,varIDout(60),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable T700'
+     status = nf90_put_att(fileID,varIDout(60),"description","TEMPERATURE @ 700hPa")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable T700'
+     status = nf90_put_att(fileID,varIDout(60),"units","K")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable T700'
+     status = nf90_put_att(fileID,varIDout(60),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable T700'
+  endif
+  
+  ! 600hPa temperature
+  if (l_t600) then
+     status = nf90_def_var(fileID,'T600',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(61))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, T600'
+     status = nf90_put_att(fileID,varIDout(61),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable T600'
+     status = nf90_put_att(fileID,varIDout(61),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable T600'
+     status = nf90_put_att(fileID,varIDout(61),"description","TEMPERATURE @ 600hPa")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable T600'
+     status = nf90_put_att(fileID,varIDout(61),"units","K")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable T600'
+     status = nf90_put_att(fileID,varIDout(61),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable T600'
+  endif
+  
+  ! 500hPa temperature
+  if (l_t500) then
+     status = nf90_def_var(fileID,'T500',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(62))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, T500'
+     status = nf90_put_att(fileID,varIDout(62),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable T500'
+     status = nf90_put_att(fileID,varIDout(62),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable T500'
+     status = nf90_put_att(fileID,varIDout(62),"description","TEMPERATURE @ 500hPa")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable T500'
+     status = nf90_put_att(fileID,varIDout(62),"units","K")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable T500'
+     status = nf90_put_att(fileID,varIDout(62),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable T500'
+  endif
+  
+  ! 250hPa temperature
+  if (l_t250) then
+     status = nf90_def_var(fileID,'T250',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(63))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, T250'
+     status = nf90_put_att(fileID,varIDout(63),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable T250'
+     status = nf90_put_att(fileID,varIDout(63),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable T250'
+     status = nf90_put_att(fileID,varIDout(63),"description","TEMPERATURE @ 250hPa")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable T250'
+     status = nf90_put_att(fileID,varIDout(63),"units","K")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable T250'
+     status = nf90_put_att(fileID,varIDout(63),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable T250'
+  endif
+
+  ! Near-surface temperature
+  if (l_t2m) then
+     status = nf90_def_var(fileID,'Tnsfc',nf90_float,  (/dimID(2),dimID(3),dimID(1)/),varIDout(66))
+     if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable, Tnsfc'
+     status = nf90_put_att(fileID,varIDout(66),"FieldType",104)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable Tnsfc'
+     status = nf90_put_att(fileID,varIDout(66),"MemoryOrder","XY")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable Tnsfc'
+     status = nf90_put_att(fileID,varIDout(66),"description","TEMPERATURE NEAR SURFACE")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable Tnsfc'
+     status = nf90_put_att(fileID,varIDout(66),"units","K")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable Tnsfc'
+     status = nf90_put_att(fileID,varIDout(66),"stagger","")
+     if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable Tnsfc'
+  endif
+
   ! Exit define mode
   status = nf90_enddef(fileID)
   if (status /= nf90_NoErr) print*,'ERROR: Failure exiting define mode'
@@ -1831,6 +1834,11 @@ program WRF3D_pp
   if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, Day'
   status = nf90_put_var(fileID,varIDout(13),hour)
   if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, Hour'
+
+  if (l_smois .or. l_tslb) then
+     status = nf90_put_var(fileID,varIDout(7),zs)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, ZS'
+  endif
   if (l_ivt) then
      status = nf90_put_var(fileID,varIDout(3),ivtU)
      if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, IVTU'
@@ -1842,9 +1850,14 @@ program WRF3D_pp
      if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, Z0K'
   endif
   if (l_smois) then
-     status = nf90_put_var(fileID,varIDout(6),soilMoisture)
+     status = nf90_put_var(fileID,varIDout(6),smois)
      if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, SMOIS'
   endif
+  if (l_tslb) then
+     status = nf90_put_var(fileID,varIDout(8),tslb)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, TSLB'
+  endif
+  
   ! Geopotential height
   if (l_z1000) then
      status = nf90_put_var(fileID,varIDout(14),z1000)
@@ -1886,6 +1899,7 @@ program WRF3D_pp
      status = nf90_put_var(fileID,varIDout(23),z250)
      if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, Z250'
   endif
+  
   ! Specific humidity
   if (l_q1000) then
      status = nf90_put_var(fileID,varIDout(24),q1000)
@@ -1927,6 +1941,11 @@ program WRF3D_pp
      status = nf90_put_var(fileID,varIDout(33),q250)
      if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, Q250'
   endif
+  if (l_q2m) then
+     status = nf90_put_var(fileID,varIDout(67),q2m)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, Qnsfc'
+  endif
+  
   ! Zonal wind
   if (l_u1000) then
      status = nf90_put_var(fileID,varIDout(34),u1000)
@@ -1967,6 +1986,10 @@ program WRF3D_pp
   if (l_u250) then
      status = nf90_put_var(fileID,varIDout(43),u250)
      if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, U250'
+  endif
+  if (l_u2m) then
+     status = nf90_put_var(fileID,varIDout(54),u2m)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, Unsfc'
   endif
 
   ! Meridional wind
@@ -2010,6 +2033,56 @@ program WRF3D_pp
      status = nf90_put_var(fileID,varIDout(53),v250)
      if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, V250'
   endif
+  if (l_v2m) then
+     status = nf90_put_var(fileID,varIDout(65),v2m)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, Vnsfc'
+  endif
+
+  ! Temperature
+  if (l_t1000) then
+     status = nf90_put_var(fileID,varIDout(64),t1000)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, T1000'
+  endif
+  if (l_t950) then
+     status = nf90_put_var(fileID,varIDout(55),t950)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, T950'
+  endif
+  if (l_t900) then
+     status = nf90_put_var(fileID,varIDout(56),t900)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, T900'
+  endif
+  if (l_t850) then
+     status = nf90_put_var(fileID,varIDout(57),t850)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, T850'
+  endif
+  if (l_t800) then
+     status = nf90_put_var(fileID,varIDout(58),t800)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, T800'
+  endif
+  if (l_t750) then
+     status = nf90_put_var(fileID,varIDout(59),t750)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, T750'
+  endif
+  if (l_t700) then
+     status = nf90_put_var(fileID,varIDout(60),t700)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, T700'
+  endif
+  if (l_t600) then
+     status = nf90_put_var(fileID,varIDout(61),t600)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, T600'
+  endif
+  if (l_t500) then
+     status = nf90_put_var(fileID,varIDout(62),t500)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, T500'
+  endif
+  if (l_t250) then
+     status = nf90_put_var(fileID,varIDout(63),t250)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, T250'
+  endif
+  if (l_t2m) then
+     status = nf90_put_var(fileID,varIDout(66),t2m)
+     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, Tnsfc'
+  endif
   
   ! Close output file
   status = nf90_close(fileID)
@@ -2028,5 +2101,13 @@ contains
     integer,intent(out)         :: stat
     read(str,*,iostat=stat)  int
   end subroutine str2int
-  
+  subroutine compute_interpolation_wts(p,pi,xi1,xi2,wt)
+    real,dimension(:),intent(in) :: p
+    real,intent(in) :: pi
+    integer,dimension(1),intent(out) :: xi1,xi2
+    real,intent(out) :: wt
+    xi1 = minloc(p-pi,p-p.gt. 0)
+    xi2 = xi1 + 1
+    wt = (p(xi2(1))-pi)/(p(xi2(1))-p(xi1(1)))
+  end subroutine compute_interpolation_wts
 end program WRF3D_pp
