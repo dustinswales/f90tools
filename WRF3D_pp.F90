@@ -88,12 +88,13 @@
          l_t500,  & ! Output 500hPa temperature?
          l_t250,  & ! Output 250hPa temperature?
          l_t2m      ! Output 2m temperature?
-    namelist/nmlist/fileIN,fileOUT,verbose,toa2sfc,l_ivt,l_z0k,l_smois,l_tslb,l_rainnc,l_rainc,l_psfc,l_tskin,l_sst,&
-         l_z1000,l_z950,l_z900,l_z850,l_z800,l_z750,l_z700,l_z600,l_z500,l_z250,&
-         l_q1000,l_q950,l_q900,l_q850,l_q800,l_q750,l_q700,l_q600,l_q500,l_q250,l_q2m,&
-         l_u1000,l_u950,l_u900,l_u850,l_u800,l_u750,l_u700,l_u600,l_u500,l_u250,l_u10m,&
-         l_v1000,l_v950,l_v900,l_v850,l_v800,l_v750,l_v700,l_v600,l_v500,l_v250,l_v10m,&
-         l_t1000,l_t950,l_t900,l_t850,l_t800,l_t750,l_t700,l_t600,l_t500,l_t250,l_t2m
+    namelist/nmlist/fileIN, fileOUT, verbose, toa2sfc, l_ivt, l_z0k, l_smois, l_tslb, l_rainnc,   &
+         l_rainc, l_psfc, l_tskin, l_sst,                                                         &
+         l_z1000, l_z950, l_z900, l_z850, l_z800, l_z750, l_z700, l_z600, l_z500, l_z250,         &
+         l_q1000, l_q950, l_q900, l_q850, l_q800, l_q750, l_q700, l_q600, l_q500, l_q250, l_q2m,  &
+         l_u1000, l_u950, l_u900, l_u850, l_u800, l_u750, l_u700, l_u600, l_u500, l_u250, l_u10m, &
+         l_v1000, l_v950, l_v900, l_v850, l_v800, l_v750, l_v700, l_v600, l_v500, l_v250, l_v10m, &
+         l_t1000, l_t950, l_t900, l_t850, l_t800, l_t750, l_t700, l_t600, l_t500, l_t250, l_t2m
     
     ! WRF fields
     integer :: &
@@ -128,7 +129,7 @@
          t2m,       & ! WRF input field: Temperature @ 2m                  (T2)      (K)
          q2m,       & ! WRF input field: Specific humidity @ 2m            (Q2)      (kg/kg)
          tsk,       & ! WRF input field: Skin temperature                  (TSK)     (K)
-         sst,       & ! WRF input field: SSST                              (SST)     (K)
+         sst,       & ! WRF input field: SST                               (SST)     (K)
          v10m,      & ! WRF input field: v-wind @ 10m                      (U10)     (m/s)     
          u10m,      & ! WRF input field: v-wind @ 10m                      (V10)     (m/s)     
          terrainZ     ! WRF input field: Terrain height                    (HGT)     (m)
@@ -295,7 +296,6 @@
     if (l_sst) then
        Lread_SST   = .true.
     endif
-    
     if (any([l_z1000,l_z950,l_z900,l_z850,l_z800,l_z750,l_z700,l_z600,l_z500,l_z250])) then
        lread_PB     = .true.
        lread_P      = .true.
@@ -680,9 +680,7 @@
     if (verbose) print*,'Finished reading in data'
     
     ! #############################################################################
-    ! Part B: Computations
-    ! Interpolate staggered velocity grid to mass-centered grid points, compute
-    ! the integrated vapor transport (IVT), and compute freezing-level height (Z0K)
+    ! Part B: Computations.
     ! #############################################################################
     
     ! Compute pressure and height.
@@ -696,58 +694,60 @@
     endif
     
     ! Allocate space.
-    if (l_ivt)   allocate(ui(nLev),vi(nLev), ivtU(nLon,nLat,nTime), ivtV(nLon,nLat,nTime),a(nLev))
-    if (l_z0k)   allocate(z0k(nLon,nLat,nTime),temp(nLev),phm(nLev))
-    if (l_z1000) allocate(z1000(nLon,nLat,nTime))
-    if (l_z950)  allocate(z950(nLon,nLat,nTime))
-    if (l_z900)  allocate(z900(nLon,nLat,nTime))
-    if (l_z850)  allocate(z850(nLon,nLat,nTime))
-    if (l_z800)  allocate(z800(nLon,nLat,nTime))
-    if (l_z750)  allocate(z750(nLon,nLat,nTime))
-    if (l_z700)  allocate(z700(nLon,nLat,nTime))
-    if (l_z600)  allocate(z600(nLon,nLat,nTime))
-    if (l_z500)  allocate(z500(nLon,nLat,nTime))
-    if (l_z250)  allocate(z250(nLon,nLat,nTime))
-    if (l_q1000) allocate(q1000(nLon,nLat,nTime))
-    if (l_q950)  allocate(q950(nLon,nLat,nTime))
-    if (l_q900)  allocate(q900(nLon,nLat,nTime))
-    if (l_q850)  allocate(q850(nLon,nLat,nTime))
-    if (l_q800)  allocate(q800(nLon,nLat,nTime))
-    if (l_q750)  allocate(q750(nLon,nLat,nTime))
-    if (l_q700)  allocate(q700(nLon,nLat,nTime))
-    if (l_q600)  allocate(q600(nLon,nLat,nTime))
-    if (l_q500)  allocate(q500(nLon,nLat,nTime))
-    if (l_q250)  allocate(q250(nLon,nLat,nTime))
-    if (l_u1000) allocate(u1000(nLon,nLat,nTime))
-    if (l_u950)  allocate(u950(nLon,nLat,nTime))
-    if (l_u900)  allocate(u900(nLon,nLat,nTime))
-    if (l_u850)  allocate(u850(nLon,nLat,nTime))
-    if (l_u800)  allocate(u800(nLon,nLat,nTime))
-    if (l_u750)  allocate(u750(nLon,nLat,nTime))
-    if (l_u700)  allocate(u700(nLon,nLat,nTime))
-    if (l_u600)  allocate(u600(nLon,nLat,nTime))
-    if (l_u500)  allocate(u500(nLon,nLat,nTime))
-    if (l_u250)  allocate(u250(nLon,nLat,nTime))
-    if (l_v1000) allocate(v1000(nLon,nLat,nTime))
-    if (l_v950)  allocate(v950(nLon,nLat,nTime))
-    if (l_v900)  allocate(v900(nLon,nLat,nTime))
-    if (l_v850)  allocate(v850(nLon,nLat,nTime))
-    if (l_v800)  allocate(v800(nLon,nLat,nTime))
-    if (l_v750)  allocate(v750(nLon,nLat,nTime))
-    if (l_v700)  allocate(v700(nLon,nLat,nTime))
-    if (l_v600)  allocate(v600(nLon,nLat,nTime))
-    if (l_v500)  allocate(v500(nLon,nLat,nTime))
-    if (l_v250)  allocate(v250(nLon,nLat,nTime))
-    if (l_t1000) allocate(t1000(nLon,nLat,nTime))
-    if (l_t950)  allocate(t950(nLon,nLat,nTime))
-    if (l_t900)  allocate(t900(nLon,nLat,nTime))
-    if (l_t850)  allocate(t850(nLon,nLat,nTime))
-    if (l_t800)  allocate(t800(nLon,nLat,nTime))
-    if (l_t750)  allocate(t750(nLon,nLat,nTime))
-    if (l_t700)  allocate(t700(nLon,nLat,nTime))
-    if (l_t600)  allocate(t600(nLon,nLat,nTime))
-    if (l_t500)  allocate(t500(nLon,nLat,nTime))
-    if (l_t250)  allocate(t250(nLon,nLat,nTime))
+    allocate(ui(nLev),vi(nLev),temp(nLev),phm(nLev))
+    if (l_ivt)   allocate(ivtU(nLon,  nLat, nTime))
+    if (l_ivt)   allocate(ivtV(nLon,  nLat, nTime))
+    if (l_z0k)   allocate(z0k( nLon,  nLat, nTime))
+    if (l_z1000) allocate(z1000(nlon, nLat, nTime))
+    if (l_z950)  allocate(z950(nLon,  nLat, nTime))
+    if (l_z900)  allocate(z900(nLon,  nLat, nTime))
+    if (l_z850)  allocate(z850(nLon,  nLat, nTime))
+    if (l_z800)  allocate(z800(nLon,  nLat, nTime))
+    if (l_z750)  allocate(z750(nLon,  nLat, nTime))
+    if (l_z700)  allocate(z700(nLon,  nLat, nTime))
+    if (l_z600)  allocate(z600(nLon,  nLat, nTime))
+    if (l_z500)  allocate(z500(nLon,  nLat, nTime))
+    if (l_z250)  allocate(z250(nLon,  nLat, nTime))
+    if (l_q1000) allocate(q1000(nlon, nLat, nTime))
+    if (l_q950)  allocate(q950(nLon,  nLat, nTime))
+    if (l_q900)  allocate(q900(nLon,  nLat, nTime))
+    if (l_q850)  allocate(q850(nLon,  nLat, nTime))
+    if (l_q800)  allocate(q800(nLon,  nLat, nTime))
+    if (l_q750)  allocate(q750(nLon,  nLat, nTime))
+    if (l_q700)  allocate(q700(nLon,  nLat, nTime))
+    if (l_q600)  allocate(q600(nLon,  nLat, nTime))
+    if (l_q500)  allocate(q500(nLon,  nLat, nTime))
+    if (l_q250)  allocate(q250(nLon,  nLat, nTime))
+    if (l_u1000) allocate(u1000(nlon, nLat, nTime))
+    if (l_u950)  allocate(u950(nLon,  nLat, nTime))
+    if (l_u900)  allocate(u900(nLon,  nLat, nTime))
+    if (l_u850)  allocate(u850(nLon,  nLat, nTime))
+    if (l_u800)  allocate(u800(nLon,  nLat, nTime))
+    if (l_u750)  allocate(u750(nLon,  nLat, nTime))
+    if (l_u700)  allocate(u700(nLon,  nLat, nTime))
+    if (l_u600)  allocate(u600(nLon,  nLat, nTime))
+    if (l_u500)  allocate(u500(nLon,  nLat, nTime))
+    if (l_u250)  allocate(u250(nLon,  nLat, nTime))
+    if (l_v1000) allocate(v1000(nlon, nLat, nTime))
+    if (l_v950)  allocate(v950(nLon,  nLat, nTime))
+    if (l_v900)  allocate(v900(nLon,  nLat, nTime))
+    if (l_v850)  allocate(v850(nLon,  nLat, nTime))
+    if (l_v800)  allocate(v800(nLon,  nLat, nTime))
+    if (l_v750)  allocate(v750(nLon,  nLat, nTime))
+    if (l_v700)  allocate(v700(nLon,  nLat, nTime))
+    if (l_v600)  allocate(v600(nLon,  nLat, nTime))
+    if (l_v500)  allocate(v500(nLon,  nLat, nTime))
+    if (l_v250)  allocate(v250(nLon,  nLat, nTime))
+    if (l_t1000) allocate(t1000(nlon, nLat, nTime))
+    if (l_t950)  allocate(t950(nLon,  nLat, nTime))
+    if (l_t900)  allocate(t900(nLon,  nLat, nTime))
+    if (l_t850)  allocate(t850(nLon,  nLat, nTime))
+    if (l_t800)  allocate(t800(nLon,  nLat, nTime))
+    if (l_t750)  allocate(t750(nLon,  nLat, nTime))
+    if (l_t700)  allocate(t700(nLon,  nLat, nTime))
+    if (l_t600)  allocate(t600(nLon,  nLat, nTime))
+    if (l_t500)  allocate(t500(nLon,  nLat, nTime))
+    if (l_t250)  allocate(t250(nLon,  nLat, nTime))
    
     ! Loop over all points/times.
     if (verbose) print*,'Begin computations... '
@@ -755,8 +755,7 @@
        if (verbose) write(*,"(a12,i2,a4,i2)"),'   @Timestep ',ii,' of ',nTime
        do ij=1,nLon
           do ik=1,nLat
-             ! ! If needed, put winds on mass centered grid points, in WRF the velocity
-             ! components are on staggered grids.
+             ! If needed, put winds on mass centered grid points, in WRF the velocity components are on staggered grids.
              ! Eastward component of wind (on mass-centered point)
              if (any([l_u1000,l_u950,l_u900,l_u850,l_u800,l_u750,l_u700,l_u600,l_u500,l_u250]) .or. l_ivt) then
                 wt1 = (lon_u(ij+1,ik,ii)-lon(ij,ik,ii))/(lon_u(ij+1,ik,ii)-lon_u(ij,ik,ii))
@@ -790,9 +789,15 @@
              if (l_ivt) then
                 do il=1,nLev
                    ! Compute pressure change across layer.
-                   if (il .eq. 1)                    dp = psfc(ij,ik,ii)-sum(p(ij,ik,il:il+1,ii))/2.              ! Bottommost level
-                   if (il .ne. 1 .and. il .ne. nLev) dp = sum(p(ij,ik,il-1:il,ii))/2.-sum(p(ij,ik,il:il+1,ii))/2. ! Middle levels
-                   if (il .eq. nLev)                 dp = 0.                                                      ! Top level
+                   if (.not. toa2sfc) then
+                      if (il .eq. 1)                    dp = psfc(ij,ik,ii)-sum(p(ij,ik,il:il+1,ii))/2.              ! Bottom level
+                      if (il .ne. 1 .and. il .ne. nLev) dp = sum(p(ij,ik,il-1:il,ii))/2.-sum(p(ij,ik,il:il+1,ii))/2. ! Middle levels
+                      if (il .eq. nLev)                 dp = 0.                                                      ! Top level
+                   else
+                      if (il .eq. 1)                    dp = 0.                                                      ! Top level
+                      if (il .ne. 1 .and. il .ne. nLev) dp = sum(p(ij,ik,il-1:il,ii))/2.-sum(p(ij,ik,il:il+1,ii))/2. ! Middle levels
+                      if (il .eq. nLev)                 dp = psfc(ij,ik,ii)-sum(p(ij,ik,il:il+1,ii))/2.              ! Bottom level
+                   endif
                    ! Integrate vertically.
                    ivtU(ij,ik,ii) = ivtU(ij,ik,ii) + ui(il)*q(ij,ik,il,ii)*dp/9.8
                    ivtV(ij,ik,ii) = ivtV(ij,ik,ii) + vi(il)*q(ij,ik,il,ii)*dp/9.8
@@ -806,8 +811,7 @@
                 ! Only compute if freezing level is present.
                 if (any(temp .gt. 273.16)) then
                    ! What is the highest level that is above freezing?
-                   a  = temp-273.15
-                   xi = minloc(a,temp .gt. 273.16)
+                   xi = minloc(temp-273.15,temp .gt. 273.16)
                    xf = xi+1
                    ! Interpolate to find freezing level height.
                    wt1 = (273.15-temp(xf(1)))/(temp(xi(1))-temp(xf(1)))
@@ -1004,7 +1008,7 @@
     if (l_v600)    call init_ncdfOutVar3D(fileID,varIDout(51),dimID(2),dimID(3),dimID(1),"V600",  "MERIDIONAL WIND @ 600hPa",      "m/s")
     if (l_v500)    call init_ncdfOutVar3D(fileID,varIDout(52),dimID(2),dimID(3),dimID(1),"V500",  "MERIDIONAL WIND @ 500hPa",      "m/s")
     if (l_v250)    call init_ncdfOutVar3D(fileID,varIDout(53),dimID(2),dimID(3),dimID(1),"V250",  "MERIDIONAL WIND @ 250hPa",      "m/s")
-    if (l_v10m)     call init_ncdfOutVar3D(fileID,varIDout(65),dimID(2),dimID(3),dimID(1),"V10m", "MERIDIONAL WIND @ 10m",         "m/s")
+    if (l_v10m)    call init_ncdfOutVar3D(fileID,varIDout(65),dimID(2),dimID(3),dimID(1),"V10m",  "MERIDIONAL WIND @ 10m",         "m/s")
     if (l_t1000)   call init_ncdfOutVar3D(fileID,varIDout(64),dimID(2),dimID(3),dimID(1),"T1000", "TEMPERATURE @ 1000hPa",         "K")
     if (l_t950)    call init_ncdfOutVar3D(fileID,varIDout(55),dimID(2),dimID(3),dimID(1),"T950",  "TEMPERATURE @ 950hPa",          "K")
     if (l_t900)    call init_ncdfOutVar3D(fileID,varIDout(56),dimID(2),dimID(3),dimID(1),"T900",  "TEMPERATURE @ 900hPa",          "K")
@@ -1183,130 +1187,131 @@
   contains
 
     ! #############################################################################
-  ! Subroutine to convert a character into integer.
-  ! #############################################################################
-  elemental subroutine str2int(str,int,stat)
-    implicit none
-    ! Arguments
-    character(len=*),intent(in) :: str
-    integer,intent(out)         :: int
-    integer,intent(out)         :: stat
-    read(str,*,iostat=stat)  int
-  end subroutine str2int
-  ! #############################################################################
-  ! Subroutine to compute interpolation weight for linear interpolation.
-  ! #############################################################################
-  subroutine compute_interpolation_wts(p,pi,xi1,xi2,wt)
-    real,dimension(:),intent(in) :: p
-    real,intent(in) :: pi
-    integer,dimension(1),intent(out) :: xi1,xi2
-    real,intent(out) :: wt
-    xi1 = minloc(p-pi,p-p.gt. 0)
-    xi2 = xi1 + 1
-    wt = (p(xi2(1))-pi)/(p(xi2(1))-p(xi1(1)))
-  end subroutine compute_interpolation_wts
+    ! Subroutine to convert a character into integer.
+    ! #############################################################################
+    elemental subroutine str2int(str,int,stat)
+      implicit none
+      ! Arguments
+      character(len=*),intent(in) :: str
+      integer,intent(out)         :: int
+      integer,intent(out)         :: stat
+      read(str,*,iostat=stat)  int
+    end subroutine str2int
+    ! #############################################################################
+    ! Subroutine to compute interpolation weight for linear interpolation.
+    ! #############################################################################
+    subroutine compute_interpolation_wts(p,pi,xi1,xi2,wt)
+      real,dimension(:),intent(in) :: p
+      real,intent(in) :: pi
+      integer,dimension(1),intent(out) :: xi1,xi2
+      real,intent(out) :: wt
+      xi1 = minloc(p-pi,p-p.gt. 0)
+      xi2 = xi1 + 1
+      wt = (p(xi2(1))-pi)/(p(xi2(1))-p(xi1(1)))
+    end subroutine compute_interpolation_wts
+    
+    ! #############################################################################
+    ! Subroutines to initialize netCDF output fields
+    ! #############################################################################
+    subroutine init_ncdfOutVar1Dflt(fileID,varID,dimID1,varName,description,units)
+      character(len=*),intent(in) :: &
+           varName,     & ! Name for output variable
+           description, & ! Metadata information
+           units          ! Units
+      integer,intent(in) :: fileID,dimID1
+      integer,intent(inout) :: varID
+      status = nf90_def_var(fileID,varName,nf90_float, (/dimID1/),varID)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable,',varName
+      status = nf90_put_att(fileID,varID,"FieldType",104)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"MemoryOrder","XY")
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"description",description)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"units",units)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"stagger","")
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable, ',varName
+    end subroutine init_ncdfOutVar1Dflt
+    subroutine init_ncdfOutVar1Dint(fileID,varID,dimID1,varName,description,units)
+      character(len=*),intent(in) :: &
+           varName,     & ! Name for output variable
+           description, & ! Metadata information
+           units          ! Units
+      integer,intent(in) :: fileID,dimID1
+      integer,intent(inout) :: varID
+      status = nf90_def_var(fileID,varName,nf90_int, (/dimID1/),varID)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable,',varName
+      status = nf90_put_att(fileID,varID,"FieldType",104)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"MemoryOrder","XY")
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"description",description)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"units",units)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"stagger","")
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable, ',varName
+    end subroutine init_ncdfOutVar1Dint
+    subroutine init_ncdfOutVar2D(fileID,varID,dimID1,dimID2,varName,description,units)
+      character(len=*),intent(in) :: &
+           varName,     & ! Name for output variable
+           description, & ! Metadata information
+           units          ! Units
+      integer,intent(in) :: fileID,dimID1,dimID2
+      integer,intent(inout) :: varID
+      status = nf90_def_var(fileID,varName,nf90_float, (/dimID1,dimID2/),varID)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable,',varName
+      status = nf90_put_att(fileID,varID,"FieldType",104)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"MemoryOrder","XY")
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"description",description)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"units",units)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"stagger","")
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable, ',varName
+    end subroutine init_ncdfOutVar2D
+    subroutine init_ncdfOutVar3D(fileID,varID,dimID1,dimID2,dimID3,varName,description,units)
+      character(len=*),intent(in) :: &
+           varName,     & ! Name for output variable
+           description, & ! Metadata information
+           units          ! Units
+      integer,intent(in) :: fileID,dimID1,dimID2,dimID3
+      integer,intent(inout) :: varID
+      status = nf90_def_var(fileID,varName,nf90_float, (/dimID1,dimID2,dimID3/),varID)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable,',varName
+      status = nf90_put_att(fileID,varID,"FieldType",104)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"MemoryOrder","XY")
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"description",description)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"units",units)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"stagger","")
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable, ',varName
+    end subroutine init_ncdfOutVar3D
+    subroutine init_ncdfOutVar4D(fileID,varID,dimID1,dimID2,dimID3,dimID4,varName,description,units)
+      character(len=*),intent(in) :: &
+           varName,     & ! Name for output variable
+           description, & ! Metadata information
+           units          ! Units
+      integer,intent(in) :: fileID,dimID1,dimID2,dimID3,dimID4
+      integer,intent(inout) :: varID
+      status = nf90_def_var(fileID,varName,nf90_float, (/dimID1,dimID2,dimID3,dimID4/),varID)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable,',varName
+      status = nf90_put_att(fileID,varID,"FieldType",104)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"MemoryOrder","XY")
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"description",description)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"units",units)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"stagger","")
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable, ',varName
+    end subroutine init_ncdfOutVar4D
+  end program WRF3D_pp
   
-  ! #############################################################################
-  ! Subroutines to initialize netCDF output fields
-  ! #############################################################################
-  subroutine init_ncdfOutVar1Dflt(fileID,varID,dimID1,varName,description,units)
-    character(len=*),intent(in) :: &
-         varName,     & ! Name for output variable
-         description, & ! Metadata information
-         units          ! Units
-    integer,intent(in) :: fileID,dimID1
-    integer,intent(inout) :: varID
-    status = nf90_def_var(fileID,varName,nf90_float, (/dimID1/),varID)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable,',varName
-    status = nf90_put_att(fileID,varID,"FieldType",104)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"MemoryOrder","XY")
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"description",description)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"units",units)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"stagger","")
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable, ',varName
-  end subroutine init_ncdfOutVar1Dflt
-  subroutine init_ncdfOutVar1Dint(fileID,varID,dimID1,varName,description,units)
-    character(len=*),intent(in) :: &
-         varName,     & ! Name for output variable
-         description, & ! Metadata information
-         units          ! Units
-    integer,intent(in) :: fileID,dimID1
-    integer,intent(inout) :: varID
-    status = nf90_def_var(fileID,varName,nf90_int, (/dimID1/),varID)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable,',varName
-    status = nf90_put_att(fileID,varID,"FieldType",104)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"MemoryOrder","XY")
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"description",description)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"units",units)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"stagger","")
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable, ',varName
-  end subroutine init_ncdfOutVar1Dint
-  subroutine init_ncdfOutVar2D(fileID,varID,dimID1,dimID2,varName,description,units)
-    character(len=*),intent(in) :: &
-         varName,     & ! Name for output variable
-         description, & ! Metadata information
-         units          ! Units
-    integer,intent(in) :: fileID,dimID1,dimID2
-    integer,intent(inout) :: varID
-    status = nf90_def_var(fileID,varName,nf90_float, (/dimID1,dimID2/),varID)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable,',varName
-    status = nf90_put_att(fileID,varID,"FieldType",104)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"MemoryOrder","XY")
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"description",description)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"units",units)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"stagger","")
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable, ',varName
-  end subroutine init_ncdfOutVar2D
-  subroutine init_ncdfOutVar3D(fileID,varID,dimID1,dimID2,dimID3,varName,description,units)
-    character(len=*),intent(in) :: &
-         varName,     & ! Name for output variable
-         description, & ! Metadata information
-         units          ! Units
-    integer,intent(in) :: fileID,dimID1,dimID2,dimID3
-    integer,intent(inout) :: varID
-    status = nf90_def_var(fileID,varName,nf90_float, (/dimID1,dimID2,dimID3/),varID)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable,',varName
-    status = nf90_put_att(fileID,varID,"FieldType",104)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"MemoryOrder","XY")
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"description",description)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"units",units)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"stagger","")
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable, ',varName
-  end subroutine init_ncdfOutVar3D
-  subroutine init_ncdfOutVar4D(fileID,varID,dimID1,dimID2,dimID3,dimID4,varName,description,units)
-    character(len=*),intent(in) :: &
-         varName,     & ! Name for output variable
-         description, & ! Metadata information
-         units          ! Units
-    integer,intent(in) :: fileID,dimID1,dimID2,dimID3,dimID4
-    integer,intent(inout) :: varID
-    status = nf90_def_var(fileID,varName,nf90_float, (/dimID1,dimID2,dimID3,dimID4/),varID)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure defining output variable,',varName
-    status = nf90_put_att(fileID,varID,"FieldType",104)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, FieldType, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"MemoryOrder","XY")
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, MemoryOrder, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"description",description)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, description, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"units",units)
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable, ',varName
-    status = nf90_put_att(fileID,varID,"stagger","")
-    if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable, ',varName
-  end subroutine init_ncdfOutVar4D
-end program WRF3D_pp
