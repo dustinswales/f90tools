@@ -480,7 +480,7 @@
        status = nf90_inq_varid(fileID,"U",varID)
        if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, U'
        if (status == nf90_NoErr) then
-          allocate(u(nLon,nLat,nLev,nTime))
+          allocate(u(nLon_stag,nLat,nLev,nTime))
           status = nf90_get_var(fileID,varID,u,count=(/nLon_stag,nLat,nLev,nTime/))
        endif
     endif
@@ -489,7 +489,7 @@
        status = nf90_inq_varid(fileID,"V",varID)
        if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, V'
        if (status == nf90_NoErr) then
-          allocate(v(nLon,nLat,nLev,nTime))
+          allocate(v(nLon,nLat_stag,nLev,nTime))
           status = nf90_get_var(fileID,varID,v,count=(/nLon,nLat_stag,nLev,nTime/))
        endif
     endif
@@ -803,7 +803,7 @@
                    ivtV(ij,ik,ii) = ivtV(ij,ik,ii) + vi(il)*q(ij,ik,il,ii)*dp/9.8
                 enddo
              endif
-             
+
              ! ######################################################################
              ! Compute freezing-level height.
              ! ######################################################################
@@ -832,7 +832,7 @@
                 if (l_v1000) v1000(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
                 if (l_q1000) q1000(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
                 if (l_t1000) t1000(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z1000) z1000(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
+                if (l_z1000) z1000(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
              endif
              ! 950hPa
              if (any([l_u950, l_v950, l_q950, l_t950, l_z950])) then
@@ -841,7 +841,7 @@
                 if (l_v950) v950(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
                 if (l_q950) q950(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
                 if (l_t950) t950(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z950) z950(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
+                if (l_z950) z950(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
              endif
              ! 900hPa
              if (any([l_u900, l_v900, l_q900, l_t900, l_z900])) then
@@ -850,7 +850,7 @@
                 if (l_v900) v900(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
                 if (l_q900) q900(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
                 if (l_t900) t900(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z900) z900(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
+                if (l_z900) z900(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
              endif
              ! 850hPa
              if (any([l_u850, l_v850, l_q850, l_t850, l_z850])) then
@@ -859,7 +859,7 @@
                 if (l_v850) v850(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
                 if (l_q850) q850(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
                 if (l_t850) t850(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z850) z850(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
+                if (l_z850) z850(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
              endif
              ! 800hPa
              if (any([l_u800, l_v800, l_q800, l_t800, l_z800])) then
@@ -868,7 +868,7 @@
                 if (l_v800) v800(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
                 if (l_q800) q800(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
                 if (l_t800) t800(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z800) z800(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
+                if (l_z800) z800(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
              endif
              ! 750hPa
              if (any([l_u750, l_v750, l_q750, l_t750, l_z750])) then
@@ -877,7 +877,7 @@
                 if (l_v750) v750(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
                 if (l_q750) q750(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
                 if (l_t750) t750(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z750) z750(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
+                if (l_z750) z750(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
              endif
              ! 700hPa
              if (any([l_u700, l_v700, l_q700, l_t700, l_z700])) then
@@ -886,7 +886,7 @@
                 if (l_v700) v700(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
                 if (l_q700) q700(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
                 if (l_t700) t700(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z700) z700(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
+                if (l_z700) z700(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
              endif
              ! 600hPa
              if (any([l_u600, l_v600, l_q600, l_t600, l_z600])) then
@@ -895,7 +895,7 @@
                 if (l_v600) v600(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
                 if (l_q600) q600(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
                 if (l_t600) t600(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z600) z600(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
+                if (l_z600) z600(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
              endif
              ! 500hPa
              if (any([l_u500, l_v500, l_q500, l_t500, l_z500])) then
@@ -904,7 +904,7 @@
                 if (l_v500) v500(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
                 if (l_q500) q500(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
                 if (l_t500) t500(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z500) z500(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
+                if (l_z500) z500(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
              endif
              ! 250hPa
              if (any([l_u250, l_v250, l_q250, l_t250, l_z250])) then
@@ -913,7 +913,7 @@
                 if (l_v250) v250(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
                 if (l_q250) q250(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
                 if (l_t250) t250(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z250) z250(ij,ik,ii) = hgt(ij,ik,xi(1),ii)*wt2 + hgt(ij,ik,xf(1),ii)*(1-wt2)
+                if (l_z250) z250(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
              endif
              
           enddo ! Latitude
@@ -1205,7 +1205,7 @@
       real,intent(in) :: pi
       integer,dimension(1),intent(out) :: xi1,xi2
       real,intent(out) :: wt
-      xi1 = minloc(p-pi,p-p.gt. 0)
+      xi1 = minloc(p-pi,p-pi.gt. 0)
       xi2 = xi1 + 1
       wt = (p(xi2(1))-pi)/(p(xi2(1))-p(xi1(1)))
     end subroutine compute_interpolation_wts
