@@ -623,7 +623,7 @@
        ! Compute precipitation.
        where(i_rainnc .gt. 0) rainnc = rainnc+i_rainnc*bucket_size
     endif
-    print*,i_rainnc
+
     if (lread_RAINC) then
        ! Accumulated total grid scale cummulus precipitaiton.
        status = nf90_inq_varid(fileID,"RAINC",varID)
