@@ -17,6 +17,8 @@
     ! Parameters
     character(len=128),parameter :: &
          input_namelist = 'wrf3d_pp_nl.txt'
+    real,parameter :: &
+         output_fill_value = -999.
     
     ! Namelist
     character(len=256) :: &
@@ -204,12 +206,15 @@
          t600,      & ! WRF temperature @ 600hPa               (K)
          t500,      & ! WRF temperature @ 500hPa               (K)
          t250         ! WRF temperature @ 250hPa               (K)
+    integer,dimension(:,:,:) ,allocatable:: &
+         i_rainnc,  & ! WRF total precipitaion bucket          (1)
+         i_rainc      ! WRF total cummulus precipitaion bucket (1)
     
     integer,dimension(80) :: dimID,varIDout
     character(len=19) :: tempTime
     integer :: status,fileID,varID,ii,ij,ik,il
     real,dimension(:),allocatable :: ui,vi,temp,phm,a,b
-    real :: wt1,dp,wt2
+    real :: wt1,dp,wt2,Bucket_size
     integer,dimension(1) :: xi,xf
 
     ! By default, turn all output to off.
@@ -602,8 +607,23 @@
           allocate(rainnc(nLon,nLat,nTime))
           status = nf90_get_var(fileID,varID,rainnc)
        endif
+       ! Bucket count
+       status = nf90_inq_varid(fileID,"I_RAINNC",varID)
+       if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, I_RAINNC'
+       if (status == nf90_NoErr) then
+          allocate(i_rainnc(nLon,nLat,nTime))
+          status = nf90_get_var(fileID,varID,i_rainnc)
+       endif
+       ! Read in global attribute desribing "bucket size"
+       status = nf90_get_att(fileID, NF90_GLOBAL, "BUCKET_MM", bucket_size)
+       if (status /= nf90_NoErr) then
+          print*,'ERROR: Requested global attribute not in file, BUCKET_MM, setting to default vaule of 100. mm'
+          bucket_size = 100.
+       endif
+       ! Compute precipitation.
+       where(i_rainnc .gt. 0) rainnc = rainnc+i_rainnc*bucket_size
     endif
-    
+    print*,i_rainnc
     if (lread_RAINC) then
        ! Accumulated total grid scale cummulus precipitaiton.
        status = nf90_inq_varid(fileID,"RAINC",varID)
@@ -612,6 +632,21 @@
           allocate(rainc(nLon,nLat,nTime))
           status = nf90_get_var(fileID,varID,rainc)
        endif
+       ! Bucket count
+       status = nf90_inq_varid(fileID,"I_RAINC",varID)
+       if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, I_RAINC'
+       if (status == nf90_NoErr) then
+          allocate(i_rainc(nLon,nLat,nTime))
+          status = nf90_get_var(fileID,varID,i_rainc)
+       endif
+       ! Read in global attribute desribing "bucket size"
+       status = nf90_get_att(fileID, NF90_GLOBAL, "BUCKET_MM", bucket_size)
+       if (status /= nf90_NoErr) then
+          print*,'ERROR: Requested global attribute not in file, BUCKET_MM, setting to default vaule of 100. mm'
+          bucket_size = 100.
+       endif
+       ! Compute precipitation.
+       where(i_rainc .gt. 0) rainc = rainc+i_rainc*bucket_size
     endif
 
     if (lread_T2M) then
@@ -698,57 +733,207 @@
     if (l_ivt)   allocate(ivtU(nLon,  nLat, nTime))
     if (l_ivt)   allocate(ivtV(nLon,  nLat, nTime))
     if (l_z0k)   allocate(z0k( nLon,  nLat, nTime))
-    if (l_z1000) allocate(z1000(nlon, nLat, nTime))
-    if (l_z950)  allocate(z950(nLon,  nLat, nTime))
-    if (l_z900)  allocate(z900(nLon,  nLat, nTime))
-    if (l_z850)  allocate(z850(nLon,  nLat, nTime))
-    if (l_z800)  allocate(z800(nLon,  nLat, nTime))
-    if (l_z750)  allocate(z750(nLon,  nLat, nTime))
-    if (l_z700)  allocate(z700(nLon,  nLat, nTime))
-    if (l_z600)  allocate(z600(nLon,  nLat, nTime))
-    if (l_z500)  allocate(z500(nLon,  nLat, nTime))
-    if (l_z250)  allocate(z250(nLon,  nLat, nTime))
-    if (l_q1000) allocate(q1000(nlon, nLat, nTime))
-    if (l_q950)  allocate(q950(nLon,  nLat, nTime))
-    if (l_q900)  allocate(q900(nLon,  nLat, nTime))
-    if (l_q850)  allocate(q850(nLon,  nLat, nTime))
-    if (l_q800)  allocate(q800(nLon,  nLat, nTime))
-    if (l_q750)  allocate(q750(nLon,  nLat, nTime))
-    if (l_q700)  allocate(q700(nLon,  nLat, nTime))
-    if (l_q600)  allocate(q600(nLon,  nLat, nTime))
-    if (l_q500)  allocate(q500(nLon,  nLat, nTime))
-    if (l_q250)  allocate(q250(nLon,  nLat, nTime))
-    if (l_u1000) allocate(u1000(nlon, nLat, nTime))
-    if (l_u950)  allocate(u950(nLon,  nLat, nTime))
-    if (l_u900)  allocate(u900(nLon,  nLat, nTime))
-    if (l_u850)  allocate(u850(nLon,  nLat, nTime))
-    if (l_u800)  allocate(u800(nLon,  nLat, nTime))
-    if (l_u750)  allocate(u750(nLon,  nLat, nTime))
-    if (l_u700)  allocate(u700(nLon,  nLat, nTime))
-    if (l_u600)  allocate(u600(nLon,  nLat, nTime))
-    if (l_u500)  allocate(u500(nLon,  nLat, nTime))
-    if (l_u250)  allocate(u250(nLon,  nLat, nTime))
-    if (l_v1000) allocate(v1000(nlon, nLat, nTime))
-    if (l_v950)  allocate(v950(nLon,  nLat, nTime))
-    if (l_v900)  allocate(v900(nLon,  nLat, nTime))
-    if (l_v850)  allocate(v850(nLon,  nLat, nTime))
-    if (l_v800)  allocate(v800(nLon,  nLat, nTime))
-    if (l_v750)  allocate(v750(nLon,  nLat, nTime))
-    if (l_v700)  allocate(v700(nLon,  nLat, nTime))
-    if (l_v600)  allocate(v600(nLon,  nLat, nTime))
-    if (l_v500)  allocate(v500(nLon,  nLat, nTime))
-    if (l_v250)  allocate(v250(nLon,  nLat, nTime))
-    if (l_t1000) allocate(t1000(nlon, nLat, nTime))
-    if (l_t950)  allocate(t950(nLon,  nLat, nTime))
-    if (l_t900)  allocate(t900(nLon,  nLat, nTime))
-    if (l_t850)  allocate(t850(nLon,  nLat, nTime))
-    if (l_t800)  allocate(t800(nLon,  nLat, nTime))
-    if (l_t750)  allocate(t750(nLon,  nLat, nTime))
-    if (l_t700)  allocate(t700(nLon,  nLat, nTime))
-    if (l_t600)  allocate(t600(nLon,  nLat, nTime))
-    if (l_t500)  allocate(t500(nLon,  nLat, nTime))
-    if (l_t250)  allocate(t250(nLon,  nLat, nTime))
-   
+    if (l_z1000) then
+       allocate(z1000(nlon, nLat, nTime))
+       z1000(:,:,:) = output_fill_value
+    endif
+    if (l_z950)  then
+       allocate(z950(nLon,  nLat, nTime))
+       z950(:,:,:) = output_fill_value
+    endif
+    if (l_z900)  then
+       allocate(z900(nLon,  nLat, nTime))
+       z900(:,:,:) = output_fill_value
+    endif
+    if (l_z850)  then
+       allocate(z850(nLon,  nLat, nTime))
+       z850(:,:,:) = output_fill_value
+    endif
+    if (l_z800) then
+       allocate(z800(nLon,  nLat, nTime))
+       z800(:,:,:) = output_fill_value
+    endif
+    if (l_z750)  then
+       allocate(z750(nLon,  nLat, nTime))
+       z750(:,:,:) = output_fill_value
+    endif
+    if (l_z700)  then
+       allocate(z700(nLon,  nLat, nTime))
+       z700(:,:,:) = output_fill_value
+    endif
+    if (l_z600) then
+       allocate(z600(nLon,  nLat, nTime))
+       z600(:,:,:) = output_fill_value
+    endif
+    if (l_z500) then
+       allocate(z500(nLon,  nLat, nTime))
+       z500(:,:,:) = output_fill_value
+    endif
+    if (l_z250)  then
+       allocate(z250(nLon,  nLat, nTime))
+       z250(:,:,:) = output_fill_value
+    endif
+    if (l_q1000) then
+       allocate(q1000(nlon, nLat, nTime))
+       q1000(:,:,:) = output_fill_value
+    endif
+    if (l_q950)  then
+       allocate(q950(nLon,  nLat, nTime))
+       q950(:,:,:) = output_fill_value
+    endif
+    if (l_q900)  then
+       allocate(q900(nLon,  nLat, nTime))
+       q900(:,:,:) = output_fill_value
+    endif
+    if (l_q850)  then
+       allocate(q850(nLon,  nLat, nTime))
+       q850(:,:,:) = output_fill_value
+    endif
+    if (l_q800) then
+       allocate(q800(nLon,  nLat, nTime))
+       q800(:,:,:) = output_fill_value
+    endif
+    if (l_q750)  then
+       allocate(q750(nLon,  nLat, nTime))
+       q750(:,:,:) = output_fill_value
+    endif
+    if (l_q700)  then
+       allocate(q700(nLon,  nLat, nTime))
+       q700(:,:,:) = output_fill_value
+    endif
+    if (l_q600) then
+       allocate(q600(nLon,  nLat, nTime))
+       q600(:,:,:) = output_fill_value
+    endif
+    if (l_q500) then
+       allocate(q500(nLon,  nLat, nTime))
+       q500(:,:,:) = output_fill_value
+    endif
+    if (l_q250)  then
+       allocate(q250(nLon,  nLat, nTime))
+       q250(:,:,:) = output_fill_value
+    endif
+    if (l_u1000) then
+       allocate(u1000(nlon, nLat, nTime))
+       u1000(:,:,:) = output_fill_value
+    endif
+    if (l_u950)  then
+       allocate(u950(nLon,  nLat, nTime))
+       u950(:,:,:) = output_fill_value
+    endif
+    if (l_u900)  then
+       allocate(u900(nLon,  nLat, nTime))
+       u900(:,:,:) = output_fill_value
+    endif
+    if (l_u850)  then
+       allocate(u850(nLon,  nLat, nTime))
+       u850(:,:,:) = output_fill_value
+    endif
+    if (l_u800) then
+       allocate(u800(nLon,  nLat, nTime))
+       u800(:,:,:) = output_fill_value
+    endif
+    if (l_u750)  then
+       allocate(u750(nLon,  nLat, nTime))
+       u750(:,:,:) = output_fill_value
+    endif
+    if (l_u700)  then
+       allocate(u700(nLon,  nLat, nTime))
+       u700(:,:,:) = output_fill_value
+    endif
+    if (l_u600) then
+       allocate(u600(nLon,  nLat, nTime))
+       u600(:,:,:) = output_fill_value
+    endif
+    if (l_u500) then
+       allocate(u500(nLon,  nLat, nTime))
+       u500(:,:,:) = output_fill_value
+    endif
+    if (l_u250)  then
+       allocate(u250(nLon,  nLat, nTime))
+       u250(:,:,:) = output_fill_value
+    endif
+    if (l_v1000) then
+       allocate(v1000(nlon, nLat, nTime))
+       v1000(:,:,:) = output_fill_value
+    endif
+    if (l_v950)  then
+       allocate(v950(nLon,  nLat, nTime))
+       v950(:,:,:) = output_fill_value
+    endif
+    if (l_v900)  then
+       allocate(v900(nLon,  nLat, nTime))
+       v900(:,:,:) = output_fill_value
+    endif
+    if (l_v850)  then
+       allocate(v850(nLon,  nLat, nTime))
+       v850(:,:,:) = output_fill_value
+    endif
+    if (l_v800) then
+       allocate(v800(nLon,  nLat, nTime))
+       v800(:,:,:) = output_fill_value
+    endif
+    if (l_v750)  then
+       allocate(v750(nLon,  nLat, nTime))
+       v750(:,:,:) = output_fill_value
+    endif
+    if (l_v700)  then
+       allocate(v700(nLon,  nLat, nTime))
+       v700(:,:,:) = output_fill_value
+    endif
+    if (l_v600) then
+       allocate(v600(nLon,  nLat, nTime))
+       v600(:,:,:) = output_fill_value
+    endif
+    if (l_v500) then
+       allocate(v500(nLon,  nLat, nTime))
+       v500(:,:,:) = output_fill_value
+    endif
+    if (l_v250)  then
+       allocate(v250(nLon,  nLat, nTime))
+       v250(:,:,:) = output_fill_value
+    endif
+    if (l_t1000) then
+       allocate(t1000(nlon, nLat, nTime))
+       t1000(:,:,:) = output_fill_value
+    endif
+    if (l_t950)  then
+       allocate(t950(nLon,  nLat, nTime))
+       t950(:,:,:) = output_fill_value
+    endif
+    if (l_t900)  then
+       allocate(t900(nLon,  nLat, nTime))
+       t900(:,:,:) = output_fill_value
+    endif
+    if (l_t850)  then
+       allocate(t850(nLon,  nLat, nTime))
+       t850(:,:,:) = output_fill_value
+    endif
+    if (l_t800) then
+       allocate(t800(nLon,  nLat, nTime))
+       t800(:,:,:) = output_fill_value
+    endif
+    if (l_t750)  then
+       allocate(t750(nLon,  nLat, nTime))
+       t750(:,:,:) = output_fill_value
+    endif
+    if (l_t700)  then
+       allocate(t700(nLon,  nLat, nTime))
+       t700(:,:,:) = output_fill_value
+    endif
+    if (l_t600) then
+       allocate(t600(nLon,  nLat, nTime))
+       t600(:,:,:) = output_fill_value
+    endif
+    if (l_t500) then
+       allocate(t500(nLon,  nLat, nTime))
+       t500(:,:,:) = output_fill_value
+    endif
+    if (l_t250)  then
+       allocate(t250(nLon,  nLat, nTime))
+       t250(:,:,:) = output_fill_value
+    endif
+    
     ! Loop over all points/times.
     if (verbose) print*,'Begin computations... '
     do ii=1,nTime
@@ -827,95 +1012,115 @@
              ! ###################################################################
              ! 1000hPa
              if (any([l_u1000, l_v1000, l_q1000, l_t1000, l_z1000])) then
-                call compute_interpolation_wts(p(ij,ik,:,ii),100000.,xi,xf,wt2)
-                if (l_u1000) u1000(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
-                if (l_v1000) v1000(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-                if (l_q1000) q1000(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-                if (l_t1000) t1000(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z1000) z1000(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                if (psfc(ij,ik,ii) .ge. 100000.) then
+                   call compute_interpolation_wts(p(ij,ik,:,ii),100000.,xi,xf,wt2)
+                   if (l_u1000) u1000(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+                   if (l_v1000) v1000(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+                   if (l_q1000) q1000(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+                   if (l_t1000) t1000(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+                   if (l_z1000) z1000(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                endif
              endif
              ! 950hPa
              if (any([l_u950, l_v950, l_q950, l_t950, l_z950])) then
-                call compute_interpolation_wts(p(ij,ik,:,ii),95000.,xi,xf,wt2)
-                if (l_u950) u950(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
-                if (l_v950) v950(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-                if (l_q950) q950(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-                if (l_t950) t950(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z950) z950(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                if (psfc(ij,ik,ii) .ge. 95000.) then
+                   call compute_interpolation_wts(p(ij,ik,:,ii),95000.,xi,xf,wt2)
+                   if (l_u950) u950(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+                   if (l_v950) v950(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+                   if (l_q950) q950(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+                   if (l_t950) t950(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+                   if (l_z950) z950(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                endif
              endif
              ! 900hPa
              if (any([l_u900, l_v900, l_q900, l_t900, l_z900])) then
-                call compute_interpolation_wts(p(ij,ik,:,ii),90000.,xi,xf,wt2)
-                if (l_u900) u900(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
-                if (l_v900) v900(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-                if (l_q900) q900(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-                if (l_t900) t900(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z900) z900(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                if (psfc(ij,ik,ii) .ge. 90000.) then
+                   call compute_interpolation_wts(p(ij,ik,:,ii),90000.,xi,xf,wt2)
+                   if (l_u900) u900(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+                   if (l_v900) v900(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+                   if (l_q900) q900(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+                   if (l_t900) t900(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+                   if (l_z900) z900(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                endif
              endif
              ! 850hPa
              if (any([l_u850, l_v850, l_q850, l_t850, l_z850])) then
-                call compute_interpolation_wts(p(ij,ik,:,ii),85000.,xi,xf,wt2)
-                if (l_u850) u850(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
-                if (l_v850) v850(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-                if (l_q850) q850(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-                if (l_t850) t850(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z850) z850(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                if (psfc(ij,ik,ii) .ge. 85000.) then
+                   call compute_interpolation_wts(p(ij,ik,:,ii),85000.,xi,xf,wt2)
+                   if (l_u850) u850(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+                   if (l_v850) v850(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+                   if (l_q850) q850(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+                   if (l_t850) t850(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+                   if (l_z850) z850(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                endif
              endif
              ! 800hPa
              if (any([l_u800, l_v800, l_q800, l_t800, l_z800])) then
-                call compute_interpolation_wts(p(ij,ik,:,ii),80000.,xi,xf,wt2)
-                if (l_u800) u800(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
-                if (l_v800) v800(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-                if (l_q800) q800(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-                if (l_t800) t800(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z800) z800(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                if (psfc(ij,ik,ii) .ge. 80000.) then
+                   call compute_interpolation_wts(p(ij,ik,:,ii),80000.,xi,xf,wt2)
+                   if (l_u800) u800(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+                   if (l_v800) v800(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+                   if (l_q800) q800(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+                   if (l_t800) t800(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+                   if (l_z800) z800(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                endif
              endif
              ! 750hPa
              if (any([l_u750, l_v750, l_q750, l_t750, l_z750])) then
-                call compute_interpolation_wts(p(ij,ik,:,ii),75000.,xi,xf,wt2)
-                if (l_u750) u750(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
-                if (l_v750) v750(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-                if (l_q750) q750(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-                if (l_t750) t750(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z750) z750(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                if (psfc(ij,ik,ii) .ge. 75000.) then
+                   call compute_interpolation_wts(p(ij,ik,:,ii),75000.,xi,xf,wt2)
+                   if (l_u750) u750(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+                   if (l_v750) v750(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+                   if (l_q750) q750(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+                   if (l_t750) t750(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+                   if (l_z750) z750(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                endif
              endif
              ! 700hPa
              if (any([l_u700, l_v700, l_q700, l_t700, l_z700])) then
-                call compute_interpolation_wts(p(ij,ik,:,ii),70000.,xi,xf,wt2)
-                if (l_u700) u700(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
-                if (l_v700) v700(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-                if (l_q700) q700(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-                if (l_t700) t700(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z700) z700(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                if (psfc(ij,ik,ii) .ge. 70000.) then
+                   call compute_interpolation_wts(p(ij,ik,:,ii),70000.,xi,xf,wt2)
+                   if (l_u700) u700(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+                   if (l_v700) v700(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+                   if (l_q700) q700(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+                   if (l_t700) t700(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+                   if (l_z700) z700(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                endif
              endif
              ! 600hPa
              if (any([l_u600, l_v600, l_q600, l_t600, l_z600])) then
-                call compute_interpolation_wts(p(ij,ik,:,ii),60000.,xi,xf,wt2)
-                if (l_u600) u600(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
-                if (l_v600) v600(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-                if (l_q600) q600(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-                if (l_t600) t600(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z600) z600(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                if (psfc(ij,ik,ii) .ge. 60000.) then
+                   call compute_interpolation_wts(p(ij,ik,:,ii),60000.,xi,xf,wt2)
+                   if (l_u600) u600(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+                   if (l_v600) v600(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+                   if (l_q600) q600(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+                   if (l_t600) t600(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+                   if (l_z600) z600(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                endif
              endif
              ! 500hPa
              if (any([l_u500, l_v500, l_q500, l_t500, l_z500])) then
-                call compute_interpolation_wts(p(ij,ik,:,ii),50000.,xi,xf,wt2)
-                if (l_u500) u500(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
-                if (l_v500) v500(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-                if (l_q500) q500(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-                if (l_t500) t500(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z500) z500(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                if (psfc(ij,ik,ii) .ge. 50000.) then
+                   call compute_interpolation_wts(p(ij,ik,:,ii),50000.,xi,xf,wt2)
+                   if (l_u500) u500(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+                   if (l_v500) v500(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+                   if (l_q500) q500(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+                   if (l_t500) t500(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+                   if (l_z500) z500(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                endif
              endif
              ! 250hPa
              if (any([l_u250, l_v250, l_q250, l_t250, l_z250])) then
-                call compute_interpolation_wts(p(ij,ik,:,ii),25000.,xi,xf,wt2)
-                if (l_u250) u250(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
-                if (l_v250) v250(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
-                if (l_q250) q250(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
-                if (l_t250) t250(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
-                if (l_z250) z250(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                if (psfc(ij,ik,ii) .ge. 25000.) then
+                   call compute_interpolation_wts(p(ij,ik,:,ii),25000.,xi,xf,wt2)
+                   if (l_u250) u250(ij,ik,ii) = ui(xi(1))*wt2 + ui(xf(1))*(1-wt2)
+                   if (l_v250) v250(ij,ik,ii) = vi(xi(1))*wt2 + vi(xf(1))*(1-wt2)
+                   if (l_q250) q250(ij,ik,ii) = q(ij,ik,xi(1),ii)*wt2 + q(ij,ik,xf(1),ii)*(1-wt2)
+                   if (l_t250) t250(ij,ik,ii) = temp(xi(1))*wt2 + temp(xf(1))*(1-wt2)
+                   if (l_z250) z250(ij,ik,ii) = phm(xi(1))*wt2 + phm(xf(1))*(1-wt2)
+                endif
              endif
-             
+        
           enddo ! Latitude
        enddo    ! Longitude
     enddo       ! Time
@@ -1272,6 +1477,8 @@
       if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable, ',varName
       status = nf90_put_att(fileID,varID,"stagger","")
       if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"FillValue",output_fill_value)
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable, ',varName
     end subroutine init_ncdfOutVar2D
     subroutine init_ncdfOutVar3D(fileID,varID,dimID1,dimID2,dimID3,varName,description,units)
       character(len=*),intent(in) :: &
@@ -1291,6 +1498,8 @@
       status = nf90_put_att(fileID,varID,"units",units)
       if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, units, to variable, ',varName
       status = nf90_put_att(fileID,varID,"stagger","")
+      if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable, ',varName
+      status = nf90_put_att(fileID,varID,"FillValue",output_fill_value)
       if (status /= nf90_NoErr) print*,'ERROR: Failure adding attribute, stagger, to variable, ',varName
     end subroutine init_ncdfOutVar3D
     subroutine init_ncdfOutVar4D(fileID,varID,dimID1,dimID2,dimID3,dimID4,varName,description,units)
