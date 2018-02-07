@@ -36,6 +36,7 @@
          l_psfc,  & ! Output surface pressure?
          l_tskin, & ! Output skin temperature?
          l_sst,   & ! Output SST?
+         l_snowe, & ! Output Snow water equivalent?
          l_z1000, & ! Output 1000hPa geopotential?
          l_z950,  & ! Output 950hPa geopotential?
          l_z900,  & ! Output 900hPa geopotential?
@@ -91,7 +92,7 @@
          l_t250,  & ! Output 250hPa temperature?
          l_t2m      ! Output 2m temperature?
     namelist/nmlist/fileIN, fileOUT, verbose, toa2sfc, l_ivt, l_z0k, l_smois, l_tslb, l_rainnc,   &
-         l_rainc, l_psfc, l_tskin, l_sst,                                                         &
+         l_rainc, l_psfc, l_tskin, l_sst,l_snowe,                                                 &
          l_z1000, l_z950, l_z900, l_z850, l_z800, l_z750, l_z700, l_z600, l_z500, l_z250,         &
          l_q1000, l_q950, l_q900, l_q850, l_q800, l_q750, l_q700, l_q600, l_q500, l_q250, l_q2m,  &
          l_u1000, l_u950, l_u900, l_u850, l_u800, l_u750, l_u700, l_u600, l_u500, l_u250, l_u10m, &
@@ -131,7 +132,8 @@
          t2m,       & ! WRF input field: Temperature @ 2m                  (T2)      (K)
          q2m,       & ! WRF input field: Specific humidity @ 2m            (Q2)      (kg/kg)
          tsk,       & ! WRF input field: Skin temperature                  (TSK)     (K)
-         sst,       & ! WRF input field: SST                               (SST)     (K)
+         sst,       & ! WRF input field: SST                               (SNOW     (kg/m2)
+         snowe,     & ! WRF input field: SNOW                              (SST)     (K)
          v10m,      & ! WRF input field: v-wind @ 10m                      (U10)     (m/s)     
          u10m,      & ! WRF input field: v-wind @ 10m                      (V10)     (m/s)     
          terrainZ     ! WRF input field: Terrain height                    (HGT)     (m)
@@ -240,7 +242,8 @@
          lread_TSLB   = .false., &
          lread_RAINNC = .false., &
          lread_RAINC  = .false., &
-         lread_SST    = .false.
+         lread_SST    = .false., &
+         lread_SNOWE  = .false.
     
     ! #############################################################################
     ! A) Read in namelist
@@ -300,6 +303,9 @@
     endif
     if (l_sst) then
        Lread_SST   = .true.
+    endif
+    if (l_snowe) then
+       Lread_SNOWE   = .true.
     endif
     if (any([l_z1000,l_z950,l_z900,l_z850,l_z800,l_z750,l_z700,l_z600,l_z500,l_z250])) then
        lread_PB     = .true.
@@ -686,6 +692,16 @@
        if (status == nf90_NoErr) then
           allocate(sst(nLon,nLat,nTime))
           status = nf90_get_var(fileID,varID,sst)
+       endif
+    endif
+    
+    if (lread_SNOWE) then
+       ! SNOW
+       status = nf90_inq_varid(fileID,"SNOW",varID)
+       if (status /= nf90_NoErr) print*,'ERROR: Requested variable not in file, SNOW'
+       if (status == nf90_NoErr) then
+          allocate(snowe(nLon,nLat,nTime))
+          status = nf90_get_var(fileID,varID,snowe)
        endif
     endif
 
@@ -1171,6 +1187,7 @@
     if (l_psfc)    call init_ncdfOutVar3D(fileID,varIDout(70),dimID(2),dimID(3),dimID(1),"PSFC",  "SFC PRESSURE",                  "Pa")
     if (l_tskin)   call init_ncdfOutVar3D(fileID,varIDout(71),dimID(2),dimID(3),dimID(1),"TSK",   "SKIN TEMPERATURE",              "K")
     if (l_sst)     call init_ncdfOutVar3D(fileID,varIDout(72),dimID(2),dimID(3),dimID(1),"SST",   "SEA SURFACE TEMPERATURE",       "K")
+    if (l_snowe)   call init_ncdfOutVar3D(fileID,varIDout(73),dimID(2),dimID(3),dimID(1),"SNOWE", "SNOW WATER EQUIVALENT",         "kg/m2")
     if (l_z1000)   call init_ncdfOutVar3D(fileID,varIDout(14),dimID(2),dimID(3),dimID(1),"Z1000", "GEOPOTENTIAL HEIGHT @ 1000hPa", "m")
     if (l_z950)    call init_ncdfOutVar3D(fileID,varIDout(15),dimID(2),dimID(3),dimID(1),"Z950",  "GEOPOTENTIAL HEIGHT @ 950hPa","  m")
     if (l_z900)    call init_ncdfOutVar3D(fileID,varIDout(16),dimID(2),dimID(3),dimID(1),"Z900",  "GEOPOTENTIAL HEIGHT @ 900hPa",  "m")
@@ -1266,12 +1283,14 @@
     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, RAINNC'
     if (l_rainc) status = nf90_put_var(fileID,varIDout(69),rainc)
     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, RAINC'
-    if (l_t2m) status = nf90_put_var(fileID,varIDout(70),psfc)
+    if (l_psfc) status = nf90_put_var(fileID,varIDout(70),psfc)
     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, PSFC'
-    if (l_t2m) status = nf90_put_var(fileID,varIDout(71),tsk)
+    if (l_tskin) status = nf90_put_var(fileID,varIDout(71),tsk)
     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, TSK'
-    if (l_t2m) status = nf90_put_var(fileID,varIDout(72),sst)
+    if (l_sst) status = nf90_put_var(fileID,varIDout(72),sst)
     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, SST'
+    if (l_snowe) status = nf90_put_var(fileID,varIDout(73),snowe)
+    if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, SNOWE'
     if (l_z1000) status = nf90_put_var(fileID,varIDout(14),z1000)
     if (status /= nf90_NoErr) print*,'ERROR: Failure populating output field, Z1000'
     if (l_z950) status = nf90_put_var(fileID,varIDout(15),z950)
