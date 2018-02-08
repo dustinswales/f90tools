@@ -1151,7 +1151,7 @@
     if (verbose) print*,'Writing to output file: ',trim(fileOUT)
     
     ! Define dimensions
-    status = nf90_def_dim(fileID,"Time",nTime,dimID(1))
+    status = nf90_def_dim(fileID,"Time",nf90_unlimited,dimID(1))
     if (status /= nf90_NoErr) print*,'ERROR: Failure making dimension ID, Time'
     status = nf90_def_dim(fileID,"west_east",nLon,dimID(2))
     if (status /= nf90_NoErr) print*,'ERROR: Failure making dimension ID, west_east'
